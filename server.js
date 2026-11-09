@@ -1,8 +1,12 @@
 const WebSocket = require('ws');
-const PORT = process.env.PORT || 8080;
+const http = require('http');
+const PORT = process.env.PORT || 3000;
 
-const wss = new WebSocket.Server({ port: PORT });
-console.log('Server started on port', PORT);
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
+server.listen(PORT, () => {
+  console.log('Server running on port ' + PORT);
+});
 
 // ── State ──
 const queue = [];        // ws connections waiting for match
