@@ -176,6 +176,13 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <button class="btn blk" data-blk="body">🛡 Корпус [S]</button>
       <button class="btn blk" data-blk="legs">🛡 Ноги [D]</button>
     </div>
+    <div class="pvp-zone" id="pvpZone" style="display:none">
+      <div class="pvp-log" id="pvpLog" style="height:60px;overflow-y:auto;font-size:clamp(10px,2vw,13px);color:#ddd;background:rgba(0,0,0,0.5);border-radius:4px;padding:4px 8px;margin-bottom:4px"></div>
+      <div class="br ct">
+        <button class="btn pvp-atk" id="pvpAtkBtn" disabled>УДАРИТЬ</button>
+      </div>
+      <div id="pvpTurnInd" style="text-align:center;font-size:clamp(10px,2vw,13px);color:#ffcc44;padding:2px"></div>
+    </div>
   </div>
 </div>
 
@@ -185,6 +192,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
     <button class="mbtn fight" id="btnFight">⚔️ НАЧАТЬ БОЙ</button>
     <button class="mbtn" id="btnMyFighter">👤 МОЙ БОЕЦ</button>
     <button class="mbtn" id="btnShop">🏪 МАГАЗИН</button>
+    <button class="mbtn fight" id="btnPvp">🌐 PVP БОЙ</button>
   </div>
 </div>
 <div class="overlay" id="oppOverlay">
@@ -211,6 +219,14 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="win-reward" id="winReward"></div>
   <div class="win-btn-row">
     <button class="win-btn" id="winContinue">ПРОДОЛЖИТЬ</button>
+  </div>
+</div>
+<div class="overlay" id="pvpQueueOverlay">
+  <div class="otitle">🌐 PVP БОЙ</div>
+  <div class="omenu" style="gap:10px;padding:20px">
+    <button class="mbtn fight" id="pvpFindBtn">ИСКАТЬ СОПЕРНИКА</button>
+    <div id="pvpStatus" style="text-align:center;font-size:clamp(14px,3vw,20px);color:#ffcc44;margin-top:8px"></div>
+    <button class="mbtn" id="pvpCancelBtn" style="display:none">ОТМЕНА</button>
   </div>
 </div>
 <script>
@@ -491,6 +507,10 @@ document.addEventListener('click',(e)=>{
   if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
   else if(t.id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
   else if(t.id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
+  else if(t.id==='btnPvp'){mo.classList.remove('show');$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
+  else if(t.id==='pvpFindBtn'){$('pvpFindBtn').disabled=true;$('pvpFindBtn').style.display='none';$('pvpCancelBtn').style.display='';$('pvpCancelBtn').disabled=false;sl('🔍 Поиск соперника...');pvpConnect();}
+  else if(t.id==='pvpCancelBtn'){$('pvpFindBtn').disabled=false;$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpStatus').textContent='Поиск отменён';if(pvpWs){try{pvpWs.send(JSON.stringify({type:'cancel_search'}));}catch(e){}try{pvpWs.close();}catch(e){}pvpWs=null;}}
+  else if(t.id==='pvpAtkBtn'){if(pvpWs&&pvpState.myTurn){pvpWs.send(JSON.stringify({type:'hit',playerId:pvpState.playerId,timestamp:Date.now()}));}}
   // Back buttons
   else if(t.id==='oppBack'){oo.classList.remove('show');mo.classList.add('show');}
   else if(t.id==='fighterBack'){fo.classList.remove('show');mo.classList.add('show');}
@@ -526,7 +546,121 @@ document.addEventListener('keydown',(e)=>{
     if(btn){btn.style.borderColor='#66ddff';btn.style.boxShadow='0 0 10px rgba(100,220,255,0.3)';}
   }
 });
-// ── INIT ──
+// ═══════════════════════════════════════════
+//  PVP
+// ═══════════════════════════════════════════
+const SERVER_URL = 'wss://ТВОЙ-СЕРВЕР.onrender.com'; // измени после деплоя
+let pvpWs = null;
+let pvpState = { playerId: null, myHP: 100, oppHP: 100, myTurn: false, inMatch: false };
+let pvpLogLines = [];
+
+function pvpConnect() {
+  if (pvpWs) { try { pvpWs.close(); } catch(e) {} pvpWs = null; }
+  try { pvpWs = new WebSocket(SERVER_URL); } catch(e) {
+    $('pvpStatus').textContent = 'Ошибка подключения к серверу'; return;
+  }
+  pvpWs.onopen = () => {
+    $('pvpStatus').textContent = 'Подключено. Ищем соперника...';
+    pvpWs.send(JSON.stringify({ type: 'find_match' }));
+  };
+  pvpWs.onmessage = (ev) => { try { pvpHandleMsg(JSON.parse(ev.data)); } catch(e) {} };
+  pvpWs.onclose = () => {
+    if (pvpState.inMatch) { pvpCleanup(); $('pvpStatus').textContent = 'Соединение разорвано'; $('pvpStatus').style.color = '#ff4444'; }
+    pvpWs = null;
+  };
+  pvpWs.onerror = () => {};
+}
+
+function pvpHandleMsg(msg) {
+  switch (msg.type) {
+    case 'searching': {
+      const t = $('pvpStatus').textContent;
+      if (t.endsWith('...')) $('pvpStatus').textContent = 'Ищем соперника';
+      else if (t.endsWith('ка')) $('pvpStatus').textContent = 'Ищем соперника.';
+      else if (t.endsWith('.')) $('pvpStatus').textContent = 'Ищем соперника..';
+      else $('pvpStatus').textContent = 'Ищем соперника...';
+      break;
+    }
+    case 'ready': {
+      pvpState.playerId = msg.playerId;
+      pvpState.myHP = msg.hp[msg.playerId];
+      pvpState.oppHP = msg.hp[msg.playerId === 'A' ? 'B' : 'A'];
+      pvpState.myTurn = msg.turn === msg.playerId;
+      pvpState.inMatch = true; pvpLogLines = [];
+      $('pvpQueueOverlay').classList.remove('show');
+      startPvPBattle();
+      break;
+    }
+    case 'update': {
+      pvpState.myHP = msg.hp[pvpState.playerId];
+      pvpState.oppHP = msg.hp[pvpState.playerId === 'A' ? 'B' : 'A'];
+      pvpState.myTurn = msg.turn === pvpState.playerId;
+      const atkName = pvpState.playerId === msg.attacker ? 'Ты' : 'Соперник';
+      let line = atkName + ' бьёт на ' + msg.dmg;
+      if (msg.isCrit) line = '★ КРИТ! ' + line;
+      pvpLogLines.push(line);
+      updatePvPUI();
+      break;
+    }
+    case 'end': {
+      const won = msg.winner === pvpState.playerId;
+      pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
+      $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
+      $('pvpStatus').style.color = won ? '#44dd44' : '#ff4444';
+      $('pvpAtkBtn').disabled = true; $('pvpTurnInd').textContent = '';
+      pvpState.inMatch = false; updatePvPLog();
+      setTimeout(() => { pvpCleanup(); }, 4000);
+      break;
+    }
+    case 'opponent_left': {
+      pvpLogLines.push('👋 Соперник сбежал! Победа за тобой!');
+      updatePvPLog(); $('pvpAtkBtn').disabled = true;
+      $('pvpTurnInd').textContent = '🎉 ПОБЕДА!';
+      pvpState.inMatch = false;
+      setTimeout(() => { pvpCleanup(); }, 4000);
+      break;
+    }
+    case 'search_cancelled': { $('pvpStatus').textContent = 'Поиск отменён'; $('pvpStatus').style.color = '#888'; break; }
+    case 'error': { $('pvpStatus').textContent = 'Ошибка: ' + msg.text; $('pvpStatus').style.color = '#ff4444'; break; }
+  }
+}
+function startPvPBattle() {
+  [mo,oo,fo,so,wo,$('pvpQueueOverlay')].forEach(el => { if (el) el.classList.remove('show'); });
+  document.querySelectorAll('.br.ct .btn.blk').forEach(b => b.closest('.br').style.display = 'none');
+  $('atkRow').style.display = 'none';
+  $('pvpZone').style.display = '';
+  n1.textContent = '\u0422\u044b'; l1.textContent = 'PvP';
+  n2.textContent = '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a'; l2.textContent = 'PvP';
+  rd.textContent = 'PVP \u0411\u041e\u0419';
+  updatePvPUI();
+}
+function updatePvPUI() {
+  const mh = 100;
+  const h1p = cl(pvpState.myHP / mh * 100, 0, 100);
+  const h2p = cl(pvpState.oppHP / mh * 100, 0, 100);
+  h1.style.width = h1p + '%'; hv1.textContent = Math.ceil(pvpState.myHP);
+  h2.style.width = h2p + '%'; hv2.textContent = Math.ceil(pvpState.oppHP);
+  $('pvpAtkBtn').disabled = !pvpState.myTurn;
+  $('pvpTurnInd').textContent = pvpState.myTurn ? '\u{1F44A} \u0422\u0432\u043e\u0439 \u0445\u043e\u0434!' : '\u23F3 \u0425\u043e\u0434 \u043f\u0440\u043e\u0442\u0438\u0432\u043d\u0438\u043a\u0430...';
+  updatePvPLog();
+  const c1 = h1p > 50 ? '#cc2222,#ff4444' : h1p > 25 ? '#cc6622,#ff8844' : '#882222,#cc3333';
+  const c2 = h2p > 50 ? '#cc2222,#ff4444' : h2p > 25 ? '#cc6622,#ff8844' : '#882222,#cc3333';
+  h1.style.background = 'linear-gradient(90deg,' + c1 + ')';
+  h2.style.background = 'linear-gradient(90deg,' + c2 + ')';
+}
+function updatePvPLog() { const el = $('pvpLog'); el.innerHTML = pvpLogLines.map(l => '<div>' + l + '</div>').join(''); el.scrollTop = el.scrollHeight; }
+function pvpCleanup() {
+  if (pvpWs) { try { pvpWs.close(); } catch(e) {} pvpWs = null; }
+  pvpState.inMatch = false; pvpState.myTurn = false;
+  $('pvpZone').style.display = 'none';
+  $('atkRow').style.display = '';
+  document.querySelectorAll('.br.ct .btn.blk').forEach(b => b.closest('.br').style.display = '');
+  n1.textContent = '\u0411\u043e\u0431\u0451\u0440'; l1.textContent = '\u0423\u0440. ' + SV.level;
+  n2.textContent = '\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u043a'; l2.textContent = '\u0423\u0440. 1';
+  rd.textContent = '\u0420\u0410\u0423\u041d\u0414 1'; $('pvpLog').innerHTML = '';
+  $('pvpTurnInd').textContent = ''; $('pvpStatus').style.color = '#ffcc44';
+  mo.classList.add('show');
+}
 loadSave();renderFighter();
 l1.textContent='\u0423\u0440. '+SV.level;
 n2.textContent='\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u043a';
