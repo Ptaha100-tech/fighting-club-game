@@ -9,7 +9,9 @@ const MIN_HIT_GAP = 350;   // антиспам ударов, мс
 // Раздаём игру с этого же сервера: тогда адрес WebSocket определяется сам.
 const STATIC = { '/': 'index.html', '/index.html': 'index.html', '/fight-visual.js': 'fight-visual.js', '/hero.js': 'hero.js' };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
+const social = require('./social');
 const server = http.createServer((req, res) => {
+  if (social.middleware(req, res)) return;
   const url = (req.url || '/').split('?')[0];
   if (url === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   const file = STATIC[url];
