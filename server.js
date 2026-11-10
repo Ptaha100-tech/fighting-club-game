@@ -1,20 +1,38 @@
 const WebSocket = require('ws');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const PORT = process.env.PORT || 3000;
+const TURN_MS = 30000;     // время на ход, потом техническое поражение
+const MIN_HIT_GAP = 350;   // антиспам ударов, мс
 
+// Раздаём игру с этого же сервера: тогда адрес WebSocket определяется сам.
+const STATIC = { '/': 'index.html', '/index.html': 'index.html', '/fight-visual.js': 'fight-visual.js' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 const server = http.createServer((req, res) => {
-  if (req.url === '/') {
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('Server is running');
-    return;
-  }
-  res.writeHead(404, {'Content-Type': 'text/plain'});
-  res.end('Not Found');
+  const url = (req.url || '/').split('?')[0];
+  if (url === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
+  const file = STATIC[url];
+  if (!file) { res.writeHead(404); return res.end('Not found'); }
+  fs.readFile(path.join(__dirname, file), (err, data) => {
+    if (err) { res.writeHead(500); return res.end('error'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)], 'Cache-Control': 'no-cache' });
+    res.end(data);
+  });
 });
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, maxPayload: 2048 });
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Пинг раз в 25 секунд: убирает мёртвые соединения и не даёт прокси их закрыть по простою
+setInterval(() => {
+  for (const c of wss.clients) {
+    if (c.isAlive === false) { c.terminate(); continue; }
+    c.isAlive = false;
+    try { c.ping(); } catch (e) {}
+  }
+}, 25000);
 
 // ── State ──
 const queue = [];        // ws connections waiting for match
@@ -35,9 +53,24 @@ function calcDamage() {
   return { dmg, isCrit };
 }
 
+function armTurnTimer(roomId) {
+  const room = rooms[roomId];
+  if (!room) return;
+  clearTimeout(room.timer);
+  room.timer = setTimeout(() => {
+    const r = rooms[roomId];
+    if (!r) return;
+    const loser = r.turn, winner = loser === 'A' ? 'B' : 'A';
+    send(r.A, { type: 'end', winner, playerId: 'A', reason: 'timeout' });
+    send(r.B, { type: 'end', winner, playerId: 'B', reason: 'timeout' });
+    delete rooms[roomId];
+  }, TURN_MS);
+}
+
 function endRoom(roomId) {
   const room = rooms[roomId];
   if (!room) return;
+  clearTimeout(room.timer);
   // Notify remaining player
   if (room.A) send(room.A, { type: 'opponent_left' });
   if (room.B) send(room.B, { type: 'opponent_left' });
@@ -63,7 +96,10 @@ function getOpponentId(room, ws) {
 
 // ── Connection handler ──
 wss.on('connection', (ws) => {
-  console.log('Client connected, total:', wss.clients().length);
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+  ws.lastHit = 0;
+  console.log('Client connected, total:', wss.clients.size);
 
   ws.on('message', (raw) => {
     let msg;
@@ -89,6 +125,8 @@ wss.on('connection', (ws) => {
           }
         }
 
+        ws.pname = String(msg.name || 'Боец').replace(/[<>&"']/g, '').slice(0, 20) || 'Боец';
+        ws.seed = Number.isInteger(msg.seed) ? Math.abs(msg.seed) % 2000000000 : Math.floor(Math.random() * 2e9);
         queue.push(ws);
         send(ws, { type: 'searching' });
 
@@ -102,12 +140,14 @@ wss.on('connection', (ws) => {
           rooms[roomId] = {
             A: p1, B: p2,
             hp: { A: 100, B: 100 },
-            turn: 'A'
+            turn: 'A',
+            timer: null
           };
+          armTurnTimer(roomId);
 
           const readyMsg = { type: 'ready', hp: { A: 100, B: 100 }, turn: 'A' };
-          send(p1, { ...readyMsg, playerId: 'A', opponentName: 'Соперник' });
-          send(p2, { ...readyMsg, playerId: 'B', opponentName: 'Соперник' });
+          send(p1, { ...readyMsg, playerId: 'A', opponentName: p2.pname, opponentSeed: p2.seed });
+          send(p2, { ...readyMsg, playerId: 'B', opponentName: p1.pname, opponentSeed: p1.seed });
           console.log('Match started:', roomId);
         }
         break;
@@ -145,13 +185,10 @@ wss.on('connection', (ws) => {
           return;
         }
 
-        // Validate timestamp (anti-cheat)
+        // Антиспам: часы клиента не используем, у телефонов они часто врут
         const now = Date.now();
-        const ts = typeof msg.timestamp === 'number' ? msg.timestamp : 0;
-        if (now - ts > 2000 || ts > now) {
-          send(ws, { type: 'error', text: 'Invalid timestamp' });
-          return;
-        }
+        if (now - ws.lastHit < MIN_HIT_GAP) return;
+        ws.lastHit = now;
 
         // Calculate damage server-side (ignore client values)
         const { dmg, isCrit } = calcDamage();
@@ -162,6 +199,7 @@ wss.on('connection', (ws) => {
 
         // Switch turn
         foundRoom.turn = opponentId;
+        armTurnTimer(foundRoomId);
 
         // Notify both players
         const updateA = {
@@ -184,6 +222,7 @@ wss.on('connection', (ws) => {
           send(foundRoom.A, { type: 'end', winner, playerId: 'A' });
           send(foundRoom.B, { type: 'end', winner, playerId: 'B' });
           console.log('Match ended:', foundRoomId, 'winner:', winner);
+          clearTimeout(foundRoom.timer);
           delete rooms[foundRoomId];
         }
         break;
@@ -208,6 +247,7 @@ wss.on('connection', (ws) => {
         if (other) {
           send(other, { type: 'opponent_left' });
         }
+        clearTimeout(r.timer);
         delete rooms[rid];
         console.log('Room ended (disconnect):', rid);
         break;

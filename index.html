@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Бойцовский клуб — 2D</title>
+<title>Бойцовский клуб</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0a}
 body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;justify-content:center;align-items:center;user-select:none}
 .gwrap{display:flex;flex-direction:column;width:100%;height:100dvh;max-width:500px;margin:0 auto;background:#111;overflow:hidden;position:relative}
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:linear-gradient(180deg,rgba(0,0,0,0.7),rgba(0,0,0,0.5));z-index:5;flex-shrink:0;height:10dvh;min-height:44px}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:calc(6px + env(safe-area-inset-top,0px)) 10px 6px;background:linear-gradient(180deg,rgba(0,0,0,0.7),rgba(0,0,0,0.5));z-index:5;flex-shrink:0;height:10dvh;min-height:44px}
 .hg{display:flex;flex-direction:column;align-items:center;gap:1px}
 .hn{font-size:clamp(10px,2.2vw,16px);font-weight:800;text-transform:uppercase;letter-spacing:1px}
 .hn.p1{color:#dd4433;text-shadow:0 0 12px rgba(212,66,58,0.4)}
@@ -29,9 +30,14 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .spl.c{top:5%;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(255,255,255,0.3),transparent 70%)}
 .fl{position:absolute;bottom:2%;left:50%;transform:translateX(-50%);width:70%;height:15%;background:radial-gradient(ellipse,rgba(255,60,60,0.07),transparent 70%);pointer-events:none}
 .arena::after{content:'';position:absolute;bottom:2%;left:6%;width:88%;height:1.5%;background:linear-gradient(90deg,transparent,#333 20%,#555 50%,#333 80%,transparent);border-radius:50%;box-shadow:0 2px 12px rgba(255,60,60,0.2)}
-.fighter{position:absolute;bottom:5%;height:42%;z-index:5;transition:transform 0.15s ease}
-.fighter.p1{left:6%;width:20%}
-.fighter.p2{right:6%;width:20%}
+.fighter{position:absolute;bottom:42%;height:26%;z-index:5;pointer-events:none}
+.fighter.p1{left:20%;width:20%}
+.fighter.p2{right:20%;width:20%}
+.fighter .silhouette{display:none}
+#fight-stage{position:absolute;inset:0;z-index:1;background:#000}
+#fight-stage canvas{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover;object-position:50% 46%;display:block}
+.arena .rrope,.arena .spl,.arena .fl,.arena::after{display:none}
+.btn.rest{border-color:#887722!important;color:#ffcc44!important}
 .silhouette{position:relative;width:100%;height:100%}
 .fighter.p1 .silhouette{transform:scaleX(1)}
 .fighter.p2 .silhouette{transform:scaleX(-1)}
@@ -76,7 +82,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .dmg-num.crit{font-size:clamp(22px,5.5vw,32px);color:#ff4444;text-shadow:0 0 12px rgba(255,0,0,0.8)}
 .dmg-num.blocked{color:#88aaff;text-shadow:0 0 8px rgba(100,150,255,0.5);font-size:clamp(12px,3vw,18px)}
 @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}50%{opacity:1;transform:translateY(-30px) scale(1.15)}100%{opacity:0;transform:translateY(-60px) scale(0.7)}}
-.controls-zone{flex-shrink:0;display:flex;flex-direction:column;gap:2px;padding:3px 5px 5px;background:linear-gradient(180deg,rgba(0,0,0,0.5),rgba(0,0,0,0.92));border-top:1px solid #333;z-index:10;height:35dvh;min-height:160px;max-height:240px;overflow-y:auto}
+.controls-zone{flex-shrink:0;display:flex;flex-direction:column;gap:5px;padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(0,0,0,0.5),rgba(0,0,0,0.92));border-top:1px solid #333;z-index:10;height:auto;max-height:45dvh;overflow-y:auto}
 .bars-row{display:flex;gap:3px;flex-shrink:0}
 .bg{flex:1;display:flex;flex-direction:column;gap:1px}
 .bl{font-size:clamp(7px,1.4vw,9px);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;opacity:0.6}
@@ -88,7 +94,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .bv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;text-shadow:0 0 3px rgba(0,0,0,0.8)}
 .bt.en{height:5px}
 .br{display:flex;gap:3px;flex-shrink:0}
-.ct .btn{padding:4px 0;border:1px solid #444;border-radius:4px;font-size:clamp(8px,1.6vw,11px);font-weight:700;cursor:pointer;transition:all 0.12s;background:linear-gradient(180deg,#2a2a2a,#1a1a1a);color:#ccc;font-family:inherit;flex:1;text-align:center;white-space:nowrap;letter-spacing:0}
+.ct .btn{min-height:44px;padding:4px 0;border:1px solid #444;border-radius:4px;font-size:clamp(8px,1.6vw,11px);font-weight:700;cursor:pointer;transition:all 0.12s;background:linear-gradient(180deg,#2a2a2a,#1a1a1a);color:#ccc;font-family:inherit;flex:1;text-align:center;white-space:nowrap;letter-spacing:0}
 .ct .btn:hover{background:linear-gradient(180deg,#3a3a3a,#2a2a2a);border-color:#666}
 .ct .btn:active{transform:translateY(1px)}
 .ct .btn.atk{border-color:#882222;color:#ff6644}
@@ -96,7 +102,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .ct .btn.blk{border-color:#225588;color:#66aaff}
 .ct .btn.blk:hover{background:linear-gradient(180deg,#1a2a3a,#101a2a);border-color:#3377cc}
 .ct .btn:disabled{opacity:0.25;cursor:not-allowed;transform:none!important}
-.msg{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:80%;z-index:8;pointer-events:none;text-align:center;font-size:clamp(10px,2vw,13px);padding:3px 8px;background:rgba(0,0,0,0.7);border-left:3px solid #ff4444;border-radius:0 4px 4px 0;backdrop-filter:blur(3px);opacity:0;transition:opacity 0.2s}
+.msg{z-index:12;position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:80%;z-index:8;pointer-events:none;text-align:center;font-size:clamp(10px,2vw,13px);padding:3px 8px;background:rgba(0,0,0,0.7);border-left:3px solid #ff4444;border-radius:0 4px 4px 0;backdrop-filter:blur(3px);opacity:0;transition:opacity 0.2s}
 .msg.show{opacity:1}
 .msg.p2{border-left-color:#4488dd}
 .log-box{position:absolute;top:12%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.55);border-radius:5px;padding:2px 8px;font-size:clamp(9px,1.8vw,12px);color:#ffcc66;border:1px solid #444;backdrop-filter:blur(3px);opacity:0;transition:opacity 0.15s;pointer-events:none;z-index:20}
@@ -151,10 +157,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
     <div class="hg"><div class="hn p2" id="n2">МУХА</div><div class="hl" id="l2">Ур. 1</div></div>
   </div>
   <div class="arena" id="arena">
-    <div class="ring-rope t"></div><div class="ring-rope b"></div>
-    <div class="ring-rope l"></div><div class="ring-rope r"></div>
-    <div class="spl l"></div><div class="spl r"></div><div class="spl c"></div>
-    <div class="fl"></div>
+    <div id="fight-stage"></div>
     <div class="fighter p1 idle" id="f1"><div class="silhouette"><div class="s-head"></div><div class="s-body"></div><div class="s-arm l"></div><div class="s-arm r"></div><div class="s-leg l"></div><div class="s-leg r"></div><div class="s-shadow"></div></div></div>
     <div class="fighter p2 idle" id="f2"><div class="silhouette"><div class="s-head"></div><div class="s-body"></div><div class="s-arm l"></div><div class="s-arm r"></div><div class="s-leg l"></div><div class="s-leg r"></div><div class="s-shadow"></div></div></div>
     <div class="msg" id="msg"></div>
@@ -175,6 +178,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <button class="btn blk" data-blk="head">🛡 Голова [A]</button>
       <button class="btn blk" data-blk="body">🛡 Корпус [S]</button>
       <button class="btn blk" data-blk="legs">🛡 Ноги [D]</button>
+      <button class="btn rest" id="restBtn">💤 Отдых [Space]</button>
     </div>
     <div class="pvp-zone" id="pvpZone" style="display:none">
       <div class="pvp-log" id="pvpLog" style="height:60px;overflow-y:auto;font-size:clamp(10px,2vw,13px);color:#ddd;background:rgba(0,0,0,0.5);border-radius:4px;padding:4px 8px;margin-bottom:4px"></div>
@@ -222,6 +226,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   </div>
 </div>
 <div class="overlay" id="pvpQueueOverlay">
+  <button class="back-btn" id="pvpBack">← НАЗАД</button>
   <div class="otitle">🌐 PVP БОЙ</div>
   <div class="omenu" style="gap:10px;padding:20px">
     <button class="mbtn fight" id="pvpFindBtn">ИСКАТЬ СОПЕРНИКА</button>
@@ -229,6 +234,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
     <button class="mbtn" id="pvpCancelBtn" style="display:none">ОТМЕНА</button>
   </div>
 </div>
+<script src="fight-visual.js"></script>
 <script>
 // ── CONFIG ──
 const C={maxHealth:100,maxEnergy:100,energyPerTurn:8,energyPerAttack:15,baseDamage:{head:22,body:16,legs:12,uppercut:26},blockReduction:0.55,botThinkDelay:400,chatInterval:2000};
@@ -261,11 +267,12 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0};
 let SV;
 function loadSave(){
   try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})}};return}throw 1}
   catch{SV={...DEF_SAVE};}
+  if(!SV.seed)SV.seed=1+Math.floor(Math.random()*2e9);
 }
 function saveSv(){try{localStorage.setItem('fc_save',JSON.stringify(SV));}catch(e){}}
 // ── STAT CALCULATION ──
@@ -324,7 +331,7 @@ function showMsg(text,who){
   msg.textContent=text;msg.style.borderLeftColor=who===2?'#4488dd':'#ff4444';
   msg.classList.add('show');clearTimeout(msg._t);msg._t=setTimeout(()=>msg.classList.remove('show'),2000);
 }
-function sce(e){document.querySelectorAll('.ct .btn').forEach(b=>b.disabled=!e);}
+function sce(e){document.querySelectorAll('.ct .btn').forEach(b=>{if(b.id!=='pvpAtkBtn')b.disabled=!e;});}
 function gd(t){return C.baseDamage[t]||15;}
 function gz(t){const m={head:'head',body:'body',legs:'legs',uppercut:'head'};return m[t]||'body';}
 
@@ -358,12 +365,13 @@ function initCombat(opp){
   sce(true);ub();ca(f1);ca(f2);
   [mo,oo,wo].forEach(el=>el.classList.remove('show'));
   gw.classList.remove('screen-shake');
+  FV.setBackground(opp>=3?'ring':'yard');FV.setFighters(SV.seed,1000+opp*7919,0,0);
   sl('\u041d\u0430\u0447\u0438\u043d\u0430\u0435\u043c!');
 }
 function epa(at){
   if(S.phase!=='playerAction')return;
   if(P.energy<C.energyPerAttack){sl('\u26a1 \u041d\u0435\u0442 \u044d\u043d\u0435\u0440\u0433\u0438\u0438!');return;}
-  S.phase='enemyAction';S.playerBlocked=false;S.enemyBlocked=false;
+  S.phase='enemyAction';S.enemyBlocked=false;
   sce(false);P.energy-=C.energyPerAttack;ub();
   taa(f1,at);showMsg(pick(CHAT_ATK),1);
   const bd=gd(at)+getExtraDmg(),z=gz(at),ebz=bcb(),ib=ebz===z;
@@ -371,6 +379,7 @@ function epa(at){
   if(isCrit){fd*=1.5;bt=' (\u043a\u0440\u0438\u0442!)'}
   else if(ib){fd*=C.blockReduction;fd*=rand(0.9,1.1);tba(f2);S.enemyBlocked=true;bt=' (\u0431\u043b\u043e\u043a!)';}
   fd=Math.max(1,fd);E.health=cl(E.health-fd,0,E.maxHP);
+  FV.strike('left',{to:1-E.health/E.maxHP,blocked:ib,crit:isCrit});
   setTimeout(()=>{
     tha(f2,false);tss();
     const r=f2.getBoundingClientRect(),wr=gw.getBoundingClientRect();
@@ -382,9 +391,15 @@ function epa(at){
   },250);
 }
 
+function rest(){
+  if(S.phase!=='playerAction')return;
+  S.phase='enemyAction';sce(false);sl('\u{1F4A4} \u041e\u0442\u0434\u044b\u0445: \u044d\u043d\u0435\u0440\u0433\u0438\u044f +'+(getEnergyRegen()*2));
+  P.energy=cl(P.energy+getEnergyRegen()*2,0,C.maxEnergy);ub();
+  setTimeout(eturn,C.botThinkDelay+200);
+}
 function eturn(){
   if(S.phase==='gameOver')return;
-  S.playerBlocked=false;S.enemyBlocked=false;
+  S.enemyBlocked=false;
   P.energy=cl(P.energy+getEnergyRegen(),0,C.maxEnergy);
   E.energy=cl(E.energy+C.energyPerTurn,0,C.maxEnergy);ub();
   const at=bca(),bd=Math.round(gd(at)*E.dmgMult||gd(at)),z=gz(at);
@@ -395,6 +410,7 @@ function eturn(){
   E.energy=cl(E.energy-C.energyPerAttack,0,C.maxEnergy);
   P.health=cl(P.health-fd,0,getMaxHP());
   taa(f2,at);
+  FV.strike('right',{to:1-P.health/getMaxHP(),blocked:ib,crit:false});
   if(!ib)showMsg(pick(CHAT_HIT),2);
   else showMsg(pick(CHAT_BLOCK),2);
   setTimeout(()=>{
@@ -404,13 +420,13 @@ function eturn(){
     const an={head:'\u0432 \u0433\u043e\u043b\u043e\u0432\u0443',body:'\u0432 \u043a\u043e\u0440\u043f\u0443\u0441',legs:'\u043b\u043e\u0443-\u043a\u0438\u043a',uppercut:'\u0430\u043f\u043f\u0435\u0440\u043a\u043e\u0442'};
     sl('\u{1F44A} '+E.name+' \u0431\u044c\u0451\u0442 '+an[at]+' \u2014 '+Math.round(fd)+' \u0443\u0440\u043e\u043d\u0430'+bt);
     ub();if(P.health<=0){endCombat(false);return;}
-    S.phase='playerAction';S.playerBlocked=false;S.playerBlockZone=null;
+    S.phase='playerAction';S.playerBlocked=false;S.playerBlockZone=null;FV.setEnergy('left',P.energy/C.maxEnergy);
     document.querySelectorAll('.btn.blk').forEach(x=>{x.style.borderColor='#225588';x.style.boxShadow='none';});sce(true);
   },300);
 }
 function addXp(amt){
-  SV.xp+=amt;const nxt=getLevelXp(SV.level);
-  while(SV.xp>=nxt){SV.xp-=nxt;SV.level++;const nxt2=getLevelXp(SV.level);sl('\u2191 \u0423\u0440\u043e\u0432\u0435\u043d\u044c '+SV.level+'!');}
+  SV.xp+=amt;
+  while(SV.xp>=getLevelXp(SV.level)){SV.xp-=getLevelXp(SV.level);SV.level++;sl('\u2191 \u0423\u0440\u043e\u0432\u0435\u043d\u044c '+SV.level+'!');}
 }
 function endCombat(win){
   S.phase='gameOver';sce(false);
@@ -507,10 +523,12 @@ document.addEventListener('click',(e)=>{
   if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
   else if(t.id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
   else if(t.id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
-  else if(t.id==='btnPvp'){mo.classList.remove('show');$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
+  else if(t.id==='btnPvp'){mo.classList.remove('show');$('pvpFindBtn').disabled=false;$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
   else if(t.id==='pvpFindBtn'){$('pvpFindBtn').disabled=true;$('pvpFindBtn').style.display='none';$('pvpCancelBtn').style.display='';$('pvpCancelBtn').disabled=false;sl('🔍 Поиск соперника...');pvpConnect();}
   else if(t.id==='pvpCancelBtn'){$('pvpFindBtn').disabled=false;$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpStatus').textContent='Поиск отменён';if(pvpWs){try{pvpWs.send(JSON.stringify({type:'cancel_search'}));}catch(e){}try{pvpWs.close();}catch(e){}pvpWs=null;}}
-  else if(t.id==='pvpAtkBtn'){if(pvpWs&&pvpState.myTurn){pvpWs.send(JSON.stringify({type:'hit',playerId:pvpState.playerId,timestamp:Date.now()}));}}
+  else if(t.id==='pvpAtkBtn'){if(pvpWs&&pvpState.myTurn){pvpWs.send(JSON.stringify({type:'hit'}));}}
+  else if(t.id==='restBtn'){rest();}
+  else if(t.id==='pvpBack'){if(pvpWs){try{pvpWs.send(JSON.stringify({type:'cancel_search'}));pvpWs.close();}catch(e){}pvpWs=null;}$('pvpQueueOverlay').classList.remove('show');mo.classList.add('show');}
   // Back buttons
   else if(t.id==='oppBack'){oo.classList.remove('show');mo.classList.add('show');}
   else if(t.id==='fighterBack'){fo.classList.remove('show');mo.classList.add('show');}
@@ -533,6 +551,7 @@ document.addEventListener('click',(e)=>{
 document.addEventListener('keydown',(e)=>{
   const k=e.key.toLowerCase();
   if(S.phase==='gameOver'){if(k==='enter'||k===' '){wo.classList.remove('show');mo.classList.add('show');}return;}
+  if(S.phase==='playerAction'&&k===' '&&!mo.classList.contains('show')){e.preventDefault();rest();return;}
   if(S.phase!=='playerAction')return;
   const am={'1':'head','2':'body','3':'legs','4':'uppercut','q':'head','w':'body','e':'legs','r':'uppercut'};
   const bm={'a':'head','s':'body','d':'legs'};
@@ -549,7 +568,10 @@ document.addEventListener('keydown',(e)=>{
 // ═══════════════════════════════════════════
 //  PVP
 // ═══════════════════════════════════════════
-const SERVER_URL = 'wss://https://fighting-club-game-1.onrender.com'; // измени после деплоя
+// Если игру открыли с нашего сервера, адрес берём из страницы. Иначе подставьте свой хост ниже.
+const FALLBACK_WS = 'wss://fighting-club-game-1.onrender.com';
+const SERVER_URL = /^https?:$/.test(location.protocol) && location.host && !/github\.io$/.test(location.host)
+  ? (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host : FALLBACK_WS;
 let pvpWs = null;
 let pvpState = { playerId: null, myHP: 100, oppHP: 100, myTurn: false, inMatch: false };
 let pvpLogLines = [];
@@ -561,7 +583,7 @@ function pvpConnect() {
   }
   pvpWs.onopen = () => {
     $('pvpStatus').textContent = 'Подключено. Ищем соперника...';
-    pvpWs.send(JSON.stringify({ type: 'find_match' }));
+    pvpWs.send(JSON.stringify({ type: 'find_match', name: P.name, seed: SV.seed }));
   };
   pvpWs.onmessage = (ev) => { try { pvpHandleMsg(JSON.parse(ev.data)); } catch(e) {} };
   pvpWs.onclose = () => {
@@ -587,6 +609,8 @@ function pvpHandleMsg(msg) {
       pvpState.oppHP = msg.hp[msg.playerId === 'A' ? 'B' : 'A'];
       pvpState.myTurn = msg.turn === msg.playerId;
       pvpState.inMatch = true; pvpLogLines = [];
+      pvpState.oppName = msg.opponentName || '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a';
+      FV.setBackground('ring'); FV.setFighters(SV.seed, msg.opponentSeed || 777, 0, 0);
       $('pvpQueueOverlay').classList.remove('show');
       startPvPBattle();
       break;
@@ -596,6 +620,8 @@ function pvpHandleMsg(msg) {
       pvpState.oppHP = msg.hp[pvpState.playerId === 'A' ? 'B' : 'A'];
       pvpState.myTurn = msg.turn === pvpState.playerId;
       const atkName = pvpState.playerId === msg.attacker ? 'Ты' : 'Соперник';
+      const meAtk = pvpState.playerId === msg.attacker;
+      FV.strike(meAtk ? 'left' : 'right', { to: 1 - (meAtk ? pvpState.oppHP : pvpState.myHP) / 100, crit: msg.isCrit });
       let line = atkName + ' бьёт на ' + msg.dmg;
       if (msg.isCrit) line = '★ КРИТ! ' + line;
       pvpLogLines.push(line);
@@ -604,6 +630,7 @@ function pvpHandleMsg(msg) {
     }
     case 'end': {
       const won = msg.winner === pvpState.playerId;
+      if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
       $('pvpStatus').style.color = won ? '#44dd44' : '#ff4444';
@@ -630,7 +657,7 @@ function startPvPBattle() {
   $('atkRow').style.display = 'none';
   $('pvpZone').style.display = '';
   n1.textContent = '\u0422\u044b'; l1.textContent = 'PvP';
-  n2.textContent = '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a'; l2.textContent = 'PvP';
+  n2.textContent = pvpState.oppName || '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a'; l2.textContent = 'PvP';
   rd.textContent = 'PVP \u0411\u041e\u0419';
   updatePvPUI();
 }
@@ -661,7 +688,12 @@ function pvpCleanup() {
   $('pvpTurnInd').textContent = ''; $('pvpStatus').style.color = '#ffcc44';
   mo.classList.add('show');
 }
+const FV=window.FightVisual;FV.setMode('game');
+try{const T=window.Telegram&&Telegram.WebApp;if(T){T.ready();T.expand();try{T.disableVerticalSwipes&&T.disableVerticalSwipes()}catch(e){}
+  const u=T.initDataUnsafe&&T.initDataUnsafe.user;if(u&&u.first_name)P.name=String(u.first_name).slice(0,16);
+  T.setHeaderColor&&T.setHeaderColor('#0a0a0a');T.setBackgroundColor&&T.setBackgroundColor('#0a0a0a');}}catch(e){}
 loadSave();renderFighter();
+FV.setFighters(SV.seed,1000,0,0);n1.textContent=P.name;
 l1.textContent='\u0423\u0440. '+SV.level;
 n2.textContent='\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u043a';
 l2.textContent='\u0423\u0440. 1';
