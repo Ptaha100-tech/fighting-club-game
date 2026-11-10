@@ -504,8 +504,9 @@ function drawFigure(g,T,f){
 }
 
 /* ---------- голова: лицо по сиду, подстроенное под ступень ---------- */
-function heroFighter(seed,tier){
-  const T=TIERS[tier],f=makeFighter(seed),r=rng((seed^0x2f6e2b1)|0);
+function tierT(tier,gear){return gear?Object.assign({},TIERS[tier],gear):TIERS[tier]}
+function heroFighter(seed,tier,gear){
+  const T=tierT(tier,gear),f=makeFighter(seed),r=rng((seed^0x2f6e2b1)|0);
   f.hair=T.hair;f.hairCol=T.hairCol;if(T.hat)f.hat=T.hat;f.gray=!!T.gray;f.gap=!!(f.gap&&T.gap);f.gold=tier>=5?f.gold:false;
   const keep=Math.min(1,T.beard/(f.beard||1)),out=[];
   for(let i=0;i<f.stub.length;i+=3)if(r()<keep)out.push(f.stub[i],f.stub[i+1],T.gray?r()<.65:false);
@@ -532,16 +533,16 @@ function lightPass(g,D,T){
   q=g.createLinearGradient(CX+60,0,CX+220,0);q.addColorStop(0,'rgba(120,165,255,0)');q.addColorStop(1,'rgba(120,165,255,.17)');g.fillStyle=q;g.fillRect(CX+60,0,W,H);
   g.globalCompositeOperation='source-over';
 }
-function buildFigure(tier,seed){
-  const T=TIERS[tier],f=heroFighter(seed,tier),fig=mk(W,H),g=fig.getContext('2d');
+function buildFigure(tier,seed,gear){
+  const T=tierT(tier,gear),f=heroFighter(seed,tier,gear),fig=mk(W,H),g=fig.getContext('2d');
   const D=drawFigure(g,T,f);lightPass(g,D,T);
   return{T,f,D,fig};
 }
 
 /* ---------- сцена главного меню ---------- */
-const S={cv:null,g:null,Q:.8,running:false,raf:0,last:0,acc:0,t:0,rec:null,head:null,tier:-1,seed:0,level:1,bg:null,parts:[],flash:0,portrait:null,onEvolve:null,vapor:[]};
+const S={cv:null,g:null,Q:.8,running:false,raf:0,last:0,acc:0,t:0,rec:null,head:null,tier:-1,seed:0,level:1,bg:null,parts:[],flash:0,portrait:null,gear:null,gsig:'',onEvolve:null,vapor:[]};
 function build(){
-  S.rec=buildFigure(S.tier,S.seed);S.head=newHead(S.rec.f,S.rec.D.hs,S.Q);paintHead(S.head,S.rec.f,S.rec.T,S.t,0);
+  S.rec=buildFigure(S.tier,S.seed,S.gear);S.head=newHead(S.rec.f,S.rec.D.hs,S.Q);paintHead(S.head,S.rec.f,S.rec.T,S.t,0);
   S.bg=getBg(S.rec.T.bg);S.portrait=null;
 }
 function mount(cv,opts){
@@ -550,7 +551,7 @@ function mount(cv,opts){
   for(let i=0;i<34;i++)S.parts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*6,vy:-6-Math.random()*10,r:.8+Math.random()*2.2,a:.15+Math.random()*.4,ph:Math.random()*6});
 }
 function setPlayer(p){
-  const tier=tierOf(p.level||1),seed=p.seed|0||1,had=!!S.rec,changed=!had||tier!==S.tier||seed!==S.seed;
+  const tier=tierOf(p.level||1),seed=p.seed|0||1,had=!!S.rec,gs=JSON.stringify(p.gear||null),changed=!had||tier!==S.tier||seed!==S.seed||gs!==S.gsig;S.gear=p.gear||null;S.gsig=gs;
   S.level=p.level||1;
   if(!changed)return false;
   const up=had&&tier>S.tier;S.tier=tier;S.seed=seed;
@@ -617,8 +618,8 @@ function drawPortrait(ctx,size){
 }
 
 /* ---------- миниатюра любой ступени (для экрана «Путь бойца») ---------- */
-function renderTier(tier,seed,w,h){
-  const {T,D,f,fig}=buildFigure(tier,seed),c=mk(w,h),g=c.getContext('2d');
+function renderTier(tier,seed,w,h,gear){
+  const {T,D,f,fig}=buildFigure(tier,seed,gear),c=mk(w,h),g=c.getContext('2d');
   const bg=getBg(T.bg),k=Math.max(w/W,h/H);g.drawImage(bg,(w-W*k)/2,(h-H*k)/2,W*k,H*k);
   g.fillStyle='rgba(0,0,0,.28)';g.fillRect(0,0,w,h);
   const sc=h*.93/760,ox=w/2-CX*sc,oy=h*.04-96*sc;
