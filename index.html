@@ -190,6 +190,40 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .ptier h4{font-size:16px;color:#ffd24a}.ptier p{font-size:12px;color:#aaa;margin-top:3px}
 .ptier .pl{display:inline-block;margin-top:5px;font-size:11px;font-weight:800;color:#fff;background:#3a2c18;border-radius:8px;padding:2px 8px}
 .ptier.cur .pl{background:#b8801f}
+
+.mm-badge{position:absolute;top:-2px;right:14%;min-width:18px;height:18px;border-radius:9px;background:#e0382c;color:#fff;font-size:11px;font-style:normal;line-height:18px;text-align:center;padding:0 4px;display:none;border:1.5px solid #fff}
+.mm-nav button{position:relative}
+#skillOverlay,#questOverlay{background:#0a0a0a}
+.spbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-weight:800;color:#ffd24a}
+.sbtn{border:1px solid #6a5226;background:#241a0c;color:#f1dcae;border-radius:8px;padding:5px 12px;font-family:inherit;font-weight:700;cursor:pointer}
+.sbtn:disabled{opacity:.4}
+.branch{background:#15110b;border:2px solid #3a2c18;border-radius:12px;padding:10px;margin-bottom:12px}
+.branch h3{font-size:15px;color:#ffd24a;margin-bottom:8px}
+.node{display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;background:#1f1810;margin-bottom:6px}
+.node.lock{opacity:.4}
+.node .ic{font-size:24px;width:34px;text-align:center}
+.node .tx{flex:1;min-width:0}.node b{font-size:14px;color:#fff}.node p{font-size:11px;color:#aaa}
+.node .pts{font-size:11px;color:#ffd24a;font-weight:800}
+.node button{border:0;border-radius:8px;background:linear-gradient(180deg,#3fb04a,#1f7a2b);color:#fff;font-weight:900;width:38px;height:38px;font-size:20px;cursor:pointer}
+.node button:disabled{background:#333;color:#777}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:8px 0;border:1.5px solid #3a2c18;background:#15110b;color:#bba;font-family:inherit;font-weight:700;font-size:13px;border-radius:9px;cursor:pointer}
+.tabs button.on{background:#b8801f;color:#fff;border-color:#ffd24a}
+.q{background:#17120c;border:2px solid #3a2c18;border-radius:12px;padding:10px;margin-bottom:8px}
+.q.ready{border-color:#ffd24a;box-shadow:0 0 12px rgba(255,210,74,.3)}
+.q .qh{display:flex;justify-content:space-between;gap:8px;font-weight:800;color:#fff;font-size:14px}
+.q .qd{font-size:12px;color:#aaa;margin:3px 0 6px}
+.q .qb{position:relative;height:16px;background:#000;border-radius:8px;overflow:hidden;border:1px solid #433}
+.q .qb i{position:absolute;inset:0 auto 0 0;background:linear-gradient(180deg,#5fd0ff,#1f7fc0)}
+.q .qb b{position:absolute;inset:0;text-align:center;font-size:10px;line-height:16px;color:#fff}
+.q .qr{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:12px;color:#ffd24a;font-weight:700}
+.q button{border:0;border-radius:8px;background:linear-gradient(180deg,#e0a52c,#a56a10);color:#fff;font-weight:900;padding:6px 14px;font-family:inherit;cursor:pointer}
+.q button:disabled{background:#333;color:#777}
+.days{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.day{background:#17120c;border:2px solid #3a2c18;border-radius:10px;text-align:center;padding:8px 2px;font-size:11px;color:#aaa}
+.day b{display:block;color:#fff;font-size:12px;margin-bottom:2px}.day span{font-size:22px;display:block}
+.day.done{opacity:.45}.day.today{border-color:#ffd24a;box-shadow:0 0 12px rgba(255,210,74,.4)}
+.day.big{grid-column:span 2}
 </style>
 </head>
 <body>
@@ -254,16 +288,28 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="mm-stats"><div><b id="mmW">0</b>побед</div><div><b id="mmL">0</b>поражений</div><div><b id="mmK">0</b>нокаутов</div><div><b id="mmH">100</b>здоровье</div></div>
   <div class="mm-nav">
     <button id="btnShop"><span>🏪</span>Магазин</button>
-    <button id="btnMyFighter"><span>👤</span>Мой боец</button>
+    <button id="btnSkills"><span>🧬</span>Навыки<i class="mm-badge" id="bdS"></i></button>
     <button id="btnFight" class="mm-go"><span>⚔️</span>В БОЙ</button>
     <button id="btnPvp"><span>🌐</span>PvP</button>
-    <button id="btnPath2"><span>🪜</span>Путь</button>
+    <button id="btnQuests"><span>📜</span>Задания<i class="mm-badge" id="bdQ"></i></button>
   </div>
 </div>
 <div class="overlay" id="pathOverlay">
   <button class="back-btn" id="pathBack">← НАЗАД</button>
   <div class="otitle">🪜 ПУТЬ БОЙЦА</div>
   <div id="pathList" class="pathlist"></div>
+</div>
+<div class="overlay" id="skillOverlay">
+  <button class="back-btn" id="skillBack">← НАЗАД</button>
+  <div class="otitle">🧬 НАВЫКИ</div>
+  <div class="spbar"><span id="spCnt">0 очков</span><button class="sbtn" id="spReset">Сбросить</button></div>
+  <div id="skillList"></div>
+</div>
+<div class="overlay" id="questOverlay">
+  <button class="back-btn" id="questBack">← НАЗАД</button>
+  <div class="otitle">📜 ЗАДАНИЯ</div>
+  <div class="tabs"><button data-tab="daily" class="on">Ежедневные</button><button data-tab="quests">Цели</button><button data-tab="bonus">Бонус</button></div>
+  <div id="questList"></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -306,13 +352,26 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 // ── CONFIG ──
 const C={maxHealth:100,maxEnergy:100,energyPerTurn:8,energyPerAttack:15,baseDamage:{head:22,body:16,legs:12,uppercut:26},blockReduction:0.55,botThinkDelay:220,chatInterval:2000};
 // ── OPPONENTS ──
-const OPP=[
+const OPP0=[
   {id:0,name:'\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u043a',level:1,skill:0.15,hpMult:0.8,dmgMult:0.7,reward:60,xp:30,desc:'\u0421\u043b\u0430\u0431\u044b\u0439, \u043d\u043e \u0437\u043b\u043e\u0439'},
   {id:1,name:'\u0411\u0440\u0438\u0442\u044b\u0439 \u041a\u0430\u0431\u0430\u043d',level:3,skill:0.25,hpMult:1.0,dmgMult:0.9,reward:120,xp:60,desc:'\u041b\u043e\u043c\u0438\u0442 \u0431\u0435\u0437 \u0440\u0430\u0437\u0431\u043e\u0440\u0443'},
   {id:2,name:'\u0421\u0430\u043d\u0442\u0435\u0445\u043d\u0438\u043a \u0422\u043e\u043b\u044f\u043d',level:5,skill:0.35,hpMult:1.2,dmgMult:1.1,reward:200,xp:100,desc:'\u041a\u0440\u0435\u043f\u043a\u0438\u0439 \u043c\u0443\u0436\u0438\u043a'},
   {id:3,name:'\u0428\u0435\u0444-\u043f\u043e\u0432\u0430\u0440 \u0413\u043e\u0433\u0430',level:8,skill:0.45,hpMult:1.4,dmgMult:1.3,reward:350,xp:180,desc:'\u041e\u043f\u044b\u0442\u043d\u044b\u0439 \u0431\u043e\u0435\u0446'},
   {id:4,name:'\u0411\u0435\u0437\u0434\u043d\u044b\u0439 \u041c\u043e\u043d\u044f\u0433',level:12,skill:0.55,hpMult:1.8,dmgMult:1.6,reward:600,xp:300,desc:'\u0427\u0435\u043c\u043f\u0438\u043e\u043d \u043f\u043e\u0434\u0432\u043e\u0440\u043e\u0442\u0435\u043d\u044c'},
 ];
+const NICK1=['Серый','Лысый','Кривой','Тощий','Рыжий','Толстый','Хмурый','Беспалый','Косой','Зубастый','Бешеный','Ржавый','Мрачный','Щербатый','Вонючий','Здоровый'];
+const NICK2=['Валера','Гена','Макс','Жора','Борян','Колян','Стас','Вован','Тимоха','Игорь','Паша','Семён','Руслан','Эдик','Дрон','Лёха'];
+const DESCS=['Дерётся грязно','Не знает слова «стоп»','Бьёт и не краснеет','Держит район','Только что из армии','Тренируется в гараже','Видел виды','Злой с утра'];
+function oppAt(i){
+  if(i<OPP0.length)return OPP0[i];
+  const k=i-4,boss=i%5===4,r=((i*2654435761)>>>0);
+  const o={id:i,name:NICK1[r%16]+' '+NICK2[(r>>>7)%16],level:12+k*2,
+    skill:Math.min(.78,.55+k*.01),hpMult:1.8+k*.16,dmgMult:Math.min(4,1.6+k*.06),
+    reward:600+k*80,xp:300+k*45,desc:DESCS[(r>>>13)%8]};
+  if(boss){o.name='\u{1F451} '+o.name;o.hpMult*=1.35;o.dmgMult*=1.2;o.reward*=2;o.xp*=2;o.desc='БОСС! Награда x2'}
+  return o;
+}
+
 // ── SHOP ITEMS ──
 const SHOP_ITEMS=[
   {id:'gloves',name:'\u041f\u0435\u0440\u0447\u0430\u0442\u043a\u0438',desc:'\u0411\u043e\u043b\u044c\u0448\u0435 \u0443\u0440\u043e\u043d\u0430',maxLvl:5,basePrice:80,mult:1.7,stat:'gloves'},
@@ -334,27 +393,35 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,rating:1000};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
 let SV;
 function loadSave(){
-  try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})}};return}throw 1}
+  try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})},stat:{...DEF_SAVE.stat,...(j.stat||{})},sk:j.sk||{},qc:j.qc||{},login:{...DEF_SAVE.login,...(j.login||{})},daily:j.daily||{date:'',list:[],bonus:false}};
+    if(!j.spInit){SV.spInit=1;SV.sp=(SV.level-1)*2}
+    if(!j.career&&(j.npcs||[]).length)SV.career=Math.max(...j.npcs)+1;return}throw 1}
   catch{SV={...DEF_SAVE};}
   if(!SV.seed)SV.seed=1+Math.floor(Math.random()*2e9);
 }
 function saveSv(){try{localStorage.setItem('fc_save',JSON.stringify(SV));}catch(e){}}
 // ── STAT CALCULATION ──
 function getMaxHP(){
-  return C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18;
+  return C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18+sk('vit')*15;
 }
 function getExtraDmg(){
-  return SV.ups.gloves*3;
+  return SV.ups.gloves*3+sk('fist')*2;
 }
 function getEnergyRegen(){
-  return C.energyPerTurn+SV.ups.sneakers*2;
+  return C.energyPerTurn+SV.ups.sneakers*2+Math.round(sk('rec')*1.5);
 }
 function getLevelXp(lvl){
   return lvl*60+40;
 }
+function sk(k){return (SV.sk&&SV.sk[k])||0;}
+function getCrit(){return .15+sk('crit')*.015;}
+function getDodge(){return sk('dodge')*.015;}
+function getPierce(){return Math.min(.92,C.blockReduction+sk('pierce')*.04);}
+function getGuard(){return Math.max(.2,C.blockReduction-sk('guard')*.03);}
+function getSkin(){return 1-sk('skin')*.015;}
 // ── DOM REFS ──
 const $=id=>document.getElementById(id);
 const h1=$('h1'),hv1=$('hv1'),h2=$('h2'),hv2=$('hv2');
@@ -420,7 +487,7 @@ const S={turn:0,round:1,phase:'idle',playerBlocked:false,playerBlockZone:null,en
 const P={name:'\u0411\u043e\u0431\u0451\u0440',health:100,energy:100};
 const E={name:'\u041c\u0443\u0445\u0430',health:100,energy:100,maxHP:100,skill:0.3};
 function initCombat(opp){
-  const o=OPP[opp];
+  const o=oppAt(opp);
   const mh=getMaxHP();
   const emh=Math.round(C.maxHealth*o.hpMult);
   P.health=mh;P.energy=C.maxEnergy;
@@ -432,7 +499,7 @@ function initCombat(opp){
   sce(true);ub();ca(f1);ca(f2);
   [mo,oo,wo].forEach(el=>el.classList.remove('show'));
   gw.classList.remove('screen-shake');
-  FV.setBackground(opp>=3?'ring':'yard');FV.setFighters(SV.seed,1000+opp*7919,0,0);
+  FV.setBackground(opp>=4?'ring':'yard');FV.setFighters(SV.seed,1000+opp*7919,0,0);
   sl('\u041d\u0430\u0447\u0438\u043d\u0430\u0435\u043c!');
 }
 function epa(at){
@@ -442,10 +509,11 @@ function epa(at){
   sce(false);P.energy-=C.energyPerAttack;ub();
   taa(f1,at);showMsg(pick(CHAT_ATK),1);
   const bd=gd(at)+getExtraDmg(),z=gz(at),ebz=bcb(),ib=ebz===z;
-  let fd=bd*rand(0.85,1.15),bt='',isCrit=!ib&&Math.random()<0.15;
+  let fd=bd*rand(0.85,1.15),bt='',isCrit=!ib&&Math.random()<getCrit();
   if(isCrit){fd*=1.5;bt=' (\u043a\u0440\u0438\u0442!)'}
-  else if(ib){fd*=C.blockReduction;fd*=rand(0.9,1.1);tba(f2);S.enemyBlocked=true;bt=' (\u0431\u043b\u043e\u043a!)';}
+  else if(ib){fd*=getPierce();fd*=rand(0.9,1.1);tba(f2);S.enemyBlocked=true;bt=' (\u0431\u043b\u043e\u043a!)';}
   fd=Math.max(1,fd);E.health=cl(E.health-fd,0,E.maxHP);
+  if(isCrit)track('crit');track('dmg',fd);if(sk('leech'))P.health=cl(P.health+fd*.03*sk('leech'),0,getMaxHP());
   FV.strike('left',{to:1-E.health/E.maxHP,blocked:ib,crit:isCrit});
   setTimeout(()=>{
     tha(f2,false);tss();
@@ -472,20 +540,21 @@ function eturn(){
   const at=bca(),bd=Math.round(gd(at)*E.dmgMult||gd(at)),z=gz(at);
   const ib=S.playerBlocked&&S.playerBlockZone===z;
   let fd=bd*rand(0.85,1.15),bt='';
-  if(ib){fd*=C.blockReduction;fd*=rand(0.9,1.1);tba(f1);bt=' (\u0431\u043b\u043e\u043a!)';}
-  fd=Math.max(1,fd);
+  if(ib){fd*=getGuard();fd*=rand(0.9,1.1);tba(f1);track('block');bt=' (\u0431\u043b\u043e\u043a!)';}
+  fd=Math.max(1,fd)*getSkin();
+  const dodged=!ib&&Math.random()<getDodge();if(dodged)fd=0;
   E.energy=cl(E.energy-C.energyPerAttack,0,C.maxEnergy);
   P.health=cl(P.health-fd,0,getMaxHP());
   taa(f2,at);
-  FV.strike('right',{to:1-P.health/getMaxHP(),blocked:ib,crit:false});
+  FV.strike('right',{to:1-P.health/getMaxHP(),blocked:ib||dodged,crit:false});
   if(!ib)showMsg(pick(CHAT_HIT),2);
   else showMsg(pick(CHAT_BLOCK),2);
   setTimeout(()=>{
     tha(f1,true);tss();
     const r=f1.getBoundingClientRect(),wr=gw.getBoundingClientRect();
-    sdn(r.left-wr.left+r.width*0.7+rand(-10,10),r.top-wr.top+40+rand(-10,10),fd,ib?'blocked':'normal');
+    if(!dodged)sdn(r.left-wr.left+r.width*0.7+rand(-10,10),r.top-wr.top+40+rand(-10,10),fd,ib?'blocked':'normal');
     const an={head:'\u0432 \u0433\u043e\u043b\u043e\u0432\u0443',body:'\u0432 \u043a\u043e\u0440\u043f\u0443\u0441',legs:'\u043b\u043e\u0443-\u043a\u0438\u043a',uppercut:'\u0430\u043f\u043f\u0435\u0440\u043a\u043e\u0442'};
-    sl('\u{1F44A} '+E.name+' \u0431\u044c\u0451\u0442 '+an[at]+' \u2014 '+Math.round(fd)+' \u0443\u0440\u043e\u043d\u0430'+bt);
+    sl(dodged?'\u{1F4A8} \u0423\u0432\u043e\u0440\u043e\u0442! '+E.name+' \u043f\u0440\u043e\u043c\u0430\u0445\u043d\u0443\u043b\u0441\u044f':'\u{1F44A} '+E.name+' \u0431\u044c\u0451\u0442 '+an[at]+' \u2014 '+Math.round(fd)+' \u0443\u0440\u043e\u043d\u0430'+bt);
     ub();if(P.health<=0){endCombat(false);return;}
     S.phase='playerAction';S.playerBlocked=false;S.playerBlockZone=null;FV.setEnergy('left',P.energy/C.maxEnergy);
     document.querySelectorAll('.btn.blk').forEach(x=>{x.style.borderColor='#225588';x.style.boxShadow='none';});sce(true);
@@ -493,22 +562,22 @@ function eturn(){
 }
 function addXp(amt){
   SV.xp+=amt;
-  while(SV.xp>=getLevelXp(SV.level)){SV.xp-=getLevelXp(SV.level);SV.level++;sl('\u2191 \u0423\u0440\u043e\u0432\u0435\u043d\u044c '+SV.level+'!');}
+  while(SV.xp>=getLevelXp(SV.level)){SV.xp-=getLevelXp(SV.level);SV.level++;SV.sp=(SV.sp||0)+2;sl('\u2191 \u0423\u0440\u043e\u0432\u0435\u043d\u044c '+SV.level+'! +2 \u043e\u0447\u043a\u0430 \u043d\u0430\u0432\u044b\u043a\u043e\u0432');}
 }
 function endCombat(win){
   S.phase='gameOver';sce(false);
-  const o=OPP[S.selectedOpp];
+  const o=oppAt(S.selectedOpp),first=S.selectedOpp>=SV.career;
   if(win){
-    SV.wins++;SV.money+=o.reward;addRating(8+S.selectedOpp*2);
+    const rw=first?o.reward:Math.round(o.reward*.5),rxp=first?o.xp:Math.round(o.xp*.5);
+    SV.wins++;SV.money+=rw;addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');if(first)SV.career=S.selectedOpp+1;
     if(E.health<=0){SV.totalKos++;}
-    if(!SV.npcs.includes(S.selectedOpp))SV.npcs.push(S.selectedOpp);
-    addXp(o.xp);
+    addXp(rxp);
     wt.textContent='\u{1F525} \u041f\u041e\u0411\u0415\u0414\u0410!';
     ws.textContent=P.name+' \u043f\u043e\u0431\u0435\u0434\u0438\u043b '+E.name;
-    wr.textContent='\u{1F4B0} +'+o.reward+' \u043c\u043e\u043d\u0435\u0442 | \u2b50 +'+o.xp+' \u043e\u043f\u044b\u0442\u0430';
+    wr.textContent='\u{1F4B0} +'+rw+' \u043c\u043e\u043d\u0435\u0442 | \u2b50 +'+rxp+' \u043e\u043f\u044b\u0442\u0430';
     wt.style.color='#ff6644';
   }else{
-    SV.losses++;addRating(-6);
+    SV.losses++;addRating(-6);track('fight');
     wt.textContent='\u{1F480} \u041f\u041e\u0420\u0410\u0416\u0415\u041d\u0418\u0415';
     ws.textContent=E.name+' \u043e\u0434\u043e\u043b\u0435\u043b...';
     wr.textContent='\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e';
@@ -519,17 +588,19 @@ function endCombat(win){
 // ── SCREEN RENDERING ──
 function renderOpponents(){
   const list=$('oppList');list.innerHTML='';
-  OPP.forEach((o,i)=>{
-    const beaten=SV.npcs.includes(i);
+  const from=Math.max(0,SV.career-3);
+  for(let i=from;i<SV.career+3;i++){
+    const o=oppAt(i),beaten=i<SV.career,locked=i>SV.career;
     const div=document.createElement('div');div.className='oitem';
-    div.innerHTML='<span class="oname'+(beaten?' beaten':'')+'">'+(beaten?'\u2713 ':'')+o.name+'</span>'+
-      '<span class="oinfo">'+o.desc+'</span>'+
-      '<span class="oreward">\u{1F4B0} '+o.reward+'</span>';
-    if(!beaten)div.onclick=()=>{S.selectedOpp=i;initCombat(i);};
+    div.innerHTML='<span class="oname'+(beaten?' beaten':'')+'">'+(beaten?'✓ ':locked?'\u{1F512} ':'')+'#'+(i+1)+' '+o.name+'</span>'+
+      '<span class="oinfo">'+o.desc+' • ур. '+o.level+'</span>'+
+      '<span class="oreward">\u{1F4B0} '+(beaten?Math.round(o.reward/2):o.reward)+'</span>';
+    if(beaten)div.style.opacity='0.65';
+    if(locked){div.style.opacity='0.5';div.onclick=()=>sl('\u{1F512} Сначала победи предыдущего');}
     else div.onclick=()=>{S.selectedOpp=i;initCombat(i);};
-    if(beaten)div.style.opacity='0.6';
     list.appendChild(div);
-  });
+  }
+  list.insertAdjacentHTML('beforeend','<div style="text-align:center;color:#888;font-size:12px;margin-top:8px">Босс каждый 5-й соперник. Лестница бесконечная!</div>');
 }
 function renderFighter(){
   const g=$('statsGrid');
@@ -563,7 +634,7 @@ function renderShop(){
     const btn=div.querySelector('.sbtn');
     if(btn)btn.onclick=()=>{
       if(SV.money>=price&&lvl<item.maxLvl){
-        SV.money-=price;SV.ups[item.stat]++;saveSv();renderShop();sl('\u2713 '+item.name+' \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u044b!');
+        SV.money-=price;SV.ups[item.stat]++;track('spend',price);saveSv();renderShop();sl('\u2713 '+item.name+' \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u044b!');
       }
     };
     list.appendChild(div);
@@ -701,7 +772,7 @@ function pvpHandleMsg(msg) {
       break;
     }
     case 'end': {
-      const won = msg.winner === pvpState.playerId; addRating(won?25:-18); saveSv();
+      const won = msg.winner === pvpState.playerId; addRating(won?25:-18);track('pvp');if(won){track('pvpwin');SV.money+=60;addXp(40);}else addXp(15);saveSv();
       if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
@@ -768,12 +839,161 @@ try{const T=window.Telegram&&Telegram.WebApp;if(T){T.ready();T.expand();try{T.di
   const u=T.initDataUnsafe&&T.initDataUnsafe.user;if(u&&u.first_name)P.name=String(u.first_name).slice(0,16);
   T.setHeaderColor&&T.setHeaderColor('#0a0a0a');T.setBackgroundColor&&T.setBackgroundColor('#0a0a0a');}}catch(e){}
 
+
+// ── PROGRESSION: skills, daily missions, quests, login streak ──
+const BRANCHES=[
+ {n:'\u{1F44A} СИЛА',nodes:[['fist','Тяжёлый кулак','+2 урона за очко',10,'\u{1F44A}'],['crit','Критический удар','+1.5% шанс крита',10,'\u{1F4A5}'],['pierce','Пробивающий','удары проходят через блок (+4%/очко)',5,'\u{1FA93}']]},
+ {n:'\u{1FAC0} ВЫНОСЛИВОСТЬ',nodes:[['vit','Здоровяк','+15 жизни за очко',10,'❤️'],['skin','Толстая кожа','-1.5% получаемого урона',10,'\u{1F6E1}️'],['rec','Дыхалка','быстрее восстанавливается энергия',8,'⚡']]},
+ {n:'\u{1F98A} ЛОВКОСТЬ',nodes:[['dodge','Уворот','+1.5% шанс увернуться',10,'\u{1F4A8}'],['guard','Мастер блока','блок гасит больше урона',8,'\u{1F91A}'],['leech','Вампир','лечит 3% от нанесённого урона за очко',5,'\u{1FA78}']]}
+];
+function skillOpen(b,i){return i===0||sk(BRANCHES[b].nodes[i-1][0])>=3;}
+function renderSkills(){
+  $('spCnt').textContent='Очков навыков: '+(SV.sp||0);
+  const rc=150+SV.level*20;$('spReset').textContent='Сброс \u{1F4B0}'+rc;
+  const L=$('skillList');L.innerHTML='';
+  BRANCHES.forEach((br,b)=>{
+    const d=document.createElement('div');d.className='branch';d.innerHTML='<h3>'+br.n+'</h3>';
+    br.nodes.forEach((nd,i)=>{
+      const open=skillOpen(b,i),v=sk(nd[0]),max=nd[3];
+      const el=document.createElement('div');el.className='node'+(open?'':' lock');
+      el.innerHTML='<div class="ic">'+nd[4]+'</div><div class="tx"><b>'+nd[1]+'</b><p>'+(open?nd[2]:'\u{1F512} нужно 3 очка в предыдущем')+'</p><span class="pts">'+v+' / '+max+'</span></div>';
+      const bt=document.createElement('button');bt.textContent='+';bt.disabled=!open||v>=max||(SV.sp||0)<1;
+      bt.onclick=()=>{SV.sp--;SV.sk[nd[0]]=v+1;saveSv();renderSkills();refreshMenu();};
+      el.appendChild(bt);d.appendChild(el);
+    });
+    L.appendChild(d);
+  });
+}
+function resetSkills(){
+  const cost=150+SV.level*20,used=Object.values(SV.sk).reduce((a,b)=>a+b,0);
+  if(!used){sl('Нечего сбрасывать');return}
+  if(SV.money<cost){sl('Нужно \u{1F4B0} '+cost);return}
+  SV.money-=cost;SV.sp+=used;SV.sk={};saveSv();renderSkills();refreshMenu();
+}
+// date helpers
+function dstr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function yday(){const d=new Date();d.setDate(d.getDate()-1);return dstr(d);}
+// rewards
+function giveReward(r){
+  if(r.money)SV.money+=r.money;if(r.sp)SV.sp=(SV.sp||0)+r.sp;if(r.xp)addXp(r.xp);saveSv();
+}
+function rewardTxt(r){return [r.money?'\u{1F4B0}'+r.money:'',r.xp?'⭐'+r.xp:'',r.sp?'\u{1F9EC}'+r.sp:''].filter(Boolean).join(' ');}
+// daily missions
+const DPOOL=[
+ {t:'win',txt:'Победить в {n} боях',g:[2,3,4],r:1},
+ {t:'fight',txt:'Провести {n} боев',g:[3,4,5],r:.8},
+ {t:'crit',txt:'Нанести {n} критических ударов',g:[3,5,8],r:1.1},
+ {t:'block',txt:'Сделать {n} успешных блоков',g:[4,6,8],r:1},
+ {t:'dmg',txt:'Нанести {n} урона',g:[300,500,800],r:1},
+ {t:'spend',txt:'Потратить {n} монет в магазине',g:[80,150,300],r:.9},
+ {t:'pvp',txt:'Сыграть {n} PvP-бой',g:[1,1,2],r:1.6}
+];
+function ensureDaily(){
+  const today=dstr();if(SV.daily&&SV.daily.date===today)return;
+  let seed=0;for(const c of today)seed=(seed*31+c.charCodeAt(0))>>>0;
+  const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+  const pool=DPOOL.slice(),list=[],tier=SV.level<5?0:SV.level<15?1:2;
+  for(let i=0;i<3;i++){const p=pool.splice(Math.floor(rnd()*pool.length),1)[0];const n=p.g[tier];
+    list.push({t:p.t,txt:p.txt.replace('{n}',n),goal:n,prog:0,claimed:false,rw:{money:Math.round((40+SV.level*8)*p.r),xp:Math.round((30+SV.level*6)*p.r)}});}
+  SV.daily={date:today,list,bonus:false};saveSv();
+}
+function track(type,n){
+  n=n||1;
+  const st=SV.stat;
+  if(type==='crit')st.crits++;else if(type==='block')st.blocks++;else if(type==='dmg')st.dmg+=n;else if(type==='pvp')st.pvpGames++;else if(type==='pvpwin')st.pvpWins++;else if(type==='spend')st.spent+=n;
+  ensureDaily();
+  SV.daily.list.forEach(m=>{if(m.t===type&&m.prog<m.goal)m.prog=Math.min(m.goal,m.prog+n);});
+  if(type==='win'||type==='fight')try{saveSv()}catch(e){}
+}
+// quest chains
+const lg=n=>SV.stat[n]||0;
+const CHAINS=[
+ {n:'Победы',ic:'\u{1F3C6}',txt:'Одержать побед',get:()=>SV.wins,st:[[1,{money:50}],[5,{money:150,xp:60}],[15,{money:300,sp:1}],[40,{money:700,sp:2}],[100,{money:2000,sp:3}]]},
+ {n:'Рост',ic:'⬆️',txt:'Достичь уровня',get:()=>SV.level,st:[[3,{money:100}],[5,{money:200,sp:1}],[10,{money:500,sp:1}],[20,{money:1200,sp:2}],[35,{money:3000,sp:3}]]},
+ {n:'Лестница',ic:'\u{1FA9C}',txt:'Победить соперника №',get:()=>SV.career,st:[[5,{money:200,xp:80}],[10,{money:500,sp:1}],[20,{money:1200,sp:2}],[35,{money:3000,sp:3}]]},
+ {n:'Резкий',ic:'\u{1F4A5}',txt:'Нанести критов',get:()=>lg('crits'),st:[[10,{money:100}],[50,{money:300,sp:1}],[200,{money:900,sp:2}]]},
+ {n:'Стена',ic:'\u{1F6E1}️',txt:'Отбить ударов блоком',get:()=>lg('blocks'),st:[[20,{money:100}],[100,{money:400,sp:1}],[400,{money:1200,sp:2}]]},
+ {n:'Умник',ic:'\u{1F9EC}',txt:'Вложить очков в навыки',get:()=>Object.values(SV.sk).reduce((a,b)=>a+b,0),st:[[5,{money:150}],[15,{money:400,xp:200}],[30,{money:1000,sp:2}]]},
+ {n:'Люди',ic:'\u{1F310}',txt:'Выиграть PvP-боёв',get:()=>lg('pvpWins'),st:[[1,{money:200,sp:1}],[5,{money:600,sp:1}],[20,{money:2000,sp:3}]]},
+ {n:'Рейтинг',ic:'\u{1F31F}',txt:'Достичь рейтинга',get:()=>SV.rating,st:[[1100,{money:200}],[1250,{money:500,sp:1}],[1450,{money:1200,sp:2}],[1700,{money:3000,sp:3}]]},
+ {n:'Постоянный',ic:'\u{1F4C5}',txt:'Заходить в игру (дней)',get:()=>lg('loginDays'),st:[[3,{money:150}],[7,{money:400,sp:1}],[21,{money:1200,sp:2}],[60,{money:3000,sp:3}]]},
+ {n:'Шопоголик',ic:'\u{1F6CD}️',txt:'Потратить монет',get:()=>lg('spent'),st:[[200,{xp:60}],[1000,{money:200,sp:1}],[5000,{money:800,sp:2}]]}
+];
+function chainStage(c){const i=SV.qc[c.n]||0;return i<c.st.length?c.st[i]:null;}
+// login bonus
+const LOGIN=[{money:100},{money:150},{money:200,xp:100},{money:300},{money:400,sp:1},{money:600,xp:200},{money:1500,sp:3}];
+function loginPreview(){
+  const l=SV.login,today=dstr();
+  if(l.last===today)return{claimed:true,day:l.streak};
+  const nd=l.last===yday()?(l.streak>=7?1:l.streak+1):1;return{claimed:false,day:nd};
+}
+function claimLogin(){
+  const p=loginPreview();if(p.claimed)return;
+  SV.login={last:dstr(),streak:p.day};SV.stat.loginDays++;giveReward(LOGIN[p.day-1]);saveSv();
+  sl('\u{1F381} Бонус дня '+p.day+': '+rewardTxt(LOGIN[p.day-1]));
+}
+function claimableCount(){
+  ensureDaily();let n=0;
+  SV.daily.list.forEach(m=>{if(m.prog>=m.goal&&!m.claimed)n++});
+  if(SV.daily.list.every(m=>m.claimed)&&!SV.daily.bonus)n++;
+  CHAINS.forEach(c=>{const s=chainStage(c);if(s&&c.get()>=s[0])n++});
+  if(!loginPreview().claimed)n++;
+  return n;
+}
+let qTab='daily';
+function bar(p,g){return '<div class="qb"><i style="width:'+cl(p/g*100,0,100)+'%"></i><b>'+Math.min(p,g)+' / '+g+'</b></div>';}
+function renderQuests(){
+  const L=$('questList');L.innerHTML='';ensureDaily();
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===qTab));
+  if(qTab==='daily'){
+    SV.daily.list.forEach((m,i)=>{
+      const ok=m.prog>=m.goal,d=document.createElement('div');d.className='q'+(ok&&!m.claimed?' ready':'');
+      d.innerHTML='<div class="qh"><span>'+m.txt+'</span></div>'+bar(m.prog,m.goal)+'<div class="qr"><span>'+rewardTxt(m.rw)+'</span></div>';
+      const b=document.createElement('button');b.textContent=m.claimed?'✓':'Забрать';b.disabled=!ok||m.claimed;
+      b.onclick=()=>{m.claimed=true;giveReward(m.rw);renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
+    });
+    const all=SV.daily.list.every(m=>m.claimed),d=document.createElement('div');d.className='q'+(all&&!SV.daily.bonus?' ready':'');
+    d.innerHTML='<div class="qh"><span>\u{1F381} Выполни все 3 задания</span></div><div class="qr"><span>\u{1F4B0}250 \u{1F9EC}1</span></div>';
+    const b=document.createElement('button');b.textContent=SV.daily.bonus?'✓':'Сундук';b.disabled=!all||SV.daily.bonus;
+    b.onclick=()=>{SV.daily.bonus=true;giveReward({money:250,sp:1});renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
+    L.insertAdjacentHTML('beforeend','<div style="text-align:center;color:#888;font-size:12px">Новые задания — каждый день</div>');
+  }else if(qTab==='quests'){
+    CHAINS.forEach(c=>{
+      const s=chainStage(c),d=document.createElement('div');
+      if(!s){d.className='q';d.innerHTML='<div class="qh"><span>'+c.ic+' '+c.n+'</span><span>✓ Всё</span></div>';L.appendChild(d);return;}
+      const ok=c.get()>=s[0];d.className='q'+(ok?' ready':'');
+      d.innerHTML='<div class="qh"><span>'+c.ic+' '+c.n+'</span><span style="color:#888;font-weight:600">'+((SV.qc[c.n]||0)+1)+'/'+c.st.length+'</span></div><div class="qd">'+c.txt+' '+s[0]+'</div>'+bar(c.get(),s[0])+'<div class="qr"><span>'+rewardTxt(s[1])+'</span></div>';
+      const b=document.createElement('button');b.textContent='Забрать';b.disabled=!ok;
+      b.onclick=()=>{SV.qc[c.n]=(SV.qc[c.n]||0)+1;giveReward(s[1]);renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
+    });
+  }else{
+    const p=loginPreview(),g=document.createElement('div');g.className='days';
+    LOGIN.forEach((r,i)=>{const n=i+1,done=p.claimed?n<=p.day:n<p.day,today=!p.claimed&&n===p.day;
+      g.insertAdjacentHTML('beforeend','<div class="day'+(done?' done':'')+(today?' today':'')+(n===7?' big':'')+'"><b>День '+n+'</b><span>'+(done?'✅':n===7?'\u{1F3C6}':'\u{1F381}')+'</span>'+rewardTxt(r)+'</div>');});
+    L.appendChild(g);
+    const b=document.createElement('button');b.className='sbtn';b.style.cssText='width:100%;margin-top:14px;padding:12px;font-size:16px';
+    b.textContent=p.claimed?'✓ Сегодняшний бонус получен. Заходи завтра!':'\u{1F381} Забрать бонус дня '+p.day;b.disabled=p.claimed;
+    b.onclick=()=>{claimLogin();renderQuests();refreshMenu();};L.appendChild(b);
+    L.insertAdjacentHTML('beforeend','<div style="text-align:center;color:#888;font-size:12px;margin-top:8px">Заходи каждый день подряд: пропуск сбрасывает серию. На 7-й день — главный приз.</div>');
+  }
+}
+document.addEventListener('click',e=>{
+  const t=e.target,id=t.id;
+  if(id==='btnSkills'){mo.classList.remove('show');renderSkills();$('skillOverlay').classList.add('show');}
+  else if(id==='skillBack'){$('skillOverlay').classList.remove('show');mo.classList.add('show');}
+  else if(id==='spReset'){resetSkills();}
+  else if(id==='btnQuests'){mo.classList.remove('show');qTab=loginPreview().claimed?'daily':'bonus';renderQuests();$('questOverlay').classList.add('show');}
+  else if(id==='questBack'){$('questOverlay').classList.remove('show');mo.classList.add('show');}
+  else if(t.dataset&&t.dataset.tab){qTab=t.dataset.tab;renderQuests();}
+});
+
 // ── MAIN MENU ──
 const LEAGUES=[[0,'Бронза'],[1100,'Серебро'],[1250,'Золото'],[1450,'Платина'],[1700,'Алмаз'],[2000,'Легенда']];
 function addRating(d){SV.rating=Math.max(0,(SV.rating||1000)+d);}
 function leagueOf(r){let i=0;LEAGUES.forEach((l,k)=>{if(r>=l[0])i=k});return i;}
 function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){return null}}
 function refreshMenu(){
+  try{const q=claimableCount(),b=$('bdQ');b.textContent=q;b.style.display=q?'block':'none';const sp=SV.sp||0,b2=$('bdS');b2.textContent=sp;b2.style.display=sp?'block':'none';}catch(e){console.error(e)}
   const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];
   $('mmName').textContent=P.name;$('mmMoney').textContent='💰 '+SV.money;$('mmLv').textContent=SV.level;
   const need=getLevelXp(SV.level);$('mmXpBar').style.width=cl(SV.xp/need*100,0,100)+'%';$('mmXpTxt').textContent=SV.xp+' / '+need;
