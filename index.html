@@ -224,6 +224,20 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .day b{display:block;color:#fff;font-size:12px;margin-bottom:2px}.day span{font-size:22px;display:block}
 .day.done{opacity:.45}.day.today{border-color:#ffd24a;box-shadow:0 0 12px rgba(255,210,74,.4)}
 .day.big{grid-column:span 2}
+
+#socOverlay{background:#0a0a0a}
+.row{display:flex;align-items:center;gap:8px;background:#17120c;border:1.5px solid #3a2c18;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;color:#ddd}
+.row.me{border-color:#ffd24a;background:#241c0c}
+.row .pl{width:28px;text-align:center;font-weight:900;color:#ffd24a}
+.row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff}
+.row .nm small{display:block;font-weight:500;color:#998;font-size:11px}
+.row .sc{font-weight:800;color:#ffd24a;white-space:nowrap}
+.row button{border:0;border-radius:8px;background:linear-gradient(180deg,#3fb04a,#1f7a2b);color:#fff;font-weight:800;padding:6px 12px;font-family:inherit;cursor:pointer}
+.warbox{background:linear-gradient(180deg,#2a1608,#140b05);border:2px solid #b8801f;border-radius:12px;padding:10px;margin-bottom:10px;text-align:center;color:#f1dcae;font-size:13px}
+.warbox b{color:#ffd24a;font-size:16px;display:block}
+.inp{display:flex;gap:6px;margin:8px 0}
+.inp input{flex:1;min-width:0;padding:10px;border-radius:8px;border:1.5px solid #6a5226;background:#120d07;color:#fff;font-family:inherit;font-size:14px}
+.hint{text-align:center;color:#888;font-size:12px;margin:8px 0}
 </style>
 </head>
 <body>
@@ -282,8 +296,8 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
-    <div class="mm-side l"><button class="mm-sb" id="btnPath"><span>🪜</span>Путь</button><button class="mm-sb" id="btnMyFighter2"><span>💪</span>Боец</button></div>
-    <div class="mm-side r"><button class="mm-sb" id="btnShop2"><span>🏪</span>Лавка</button><button class="mm-sb" id="btnAvaReset"><span>🔄</span>Фото</button></div>
+    <div class="mm-side l"><button class="mm-sb" id="btnPath"><span>🪜</span>Путь</button><button class="mm-sb" id="btnMyFighter2"><span>💪</span>Боец</button><button class="mm-sb" id="btnClan"><span>🛡️</span>Клан</button></div>
+    <div class="mm-side r"><button class="mm-sb" id="btnShop2"><span>🏪</span>Лавка</button><button class="mm-sb" id="btnAvaReset"><span>🔄</span>Фото</button><button class="mm-sb" id="btnTop"><span>🏆</span>Топ</button></div>
   </div>
   <div class="mm-stats"><div><b id="mmW">0</b>побед</div><div><b id="mmL">0</b>поражений</div><div><b id="mmK">0</b>нокаутов</div><div><b id="mmH">100</b>здоровье</div></div>
   <div class="mm-nav">
@@ -310,6 +324,12 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="otitle">📜 ЗАДАНИЯ</div>
   <div class="tabs"><button data-tab="daily" class="on">Ежедневные</button><button data-tab="quests">Цели</button><button data-tab="bonus">Бонус</button></div>
   <div id="questList"></div>
+</div>
+<div class="overlay" id="socOverlay">
+  <button class="back-btn" id="socBack">← НАЗАД</button>
+  <div class="otitle">🏆 ТОП И КЛАНЫ</div>
+  <div class="tabs"><button data-st="players" class="on">Игроки</button><button data-st="clans">Кланы</button><button data-st="mine">Мой клан</button></div>
+  <div id="socList"></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -393,7 +413,7 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,war:0,rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
 let SV;
 function loadSave(){
   try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})},stat:{...DEF_SAVE.stat,...(j.stat||{})},sk:j.sk||{},qc:j.qc||{},login:{...DEF_SAVE.login,...(j.login||{})},daily:j.daily||{date:'',list:[],bonus:false}};
@@ -569,7 +589,7 @@ function endCombat(win){
   const o=oppAt(S.selectedOpp),first=S.selectedOpp>=SV.career;
   if(win){
     const rw=first?o.reward:Math.round(o.reward*.5),rxp=first?o.xp:Math.round(o.xp*.5);
-    SV.wins++;SV.money+=rw;addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');if(first)SV.career=S.selectedOpp+1;
+    SV.wins++;SV.money+=rw;addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');SV.war=(SV.war||0)+(S.selectedOpp%5===4&&S.selectedOpp>=4?3:1);if(first)SV.career=S.selectedOpp+1;
     if(E.health<=0){SV.totalKos++;}
     addXp(rxp);
     wt.textContent='\u{1F525} \u041f\u041e\u0411\u0415\u0414\u0410!';
@@ -772,7 +792,7 @@ function pvpHandleMsg(msg) {
       break;
     }
     case 'end': {
-      const won = msg.winner === pvpState.playerId; addRating(won?25:-18);track('pvp');if(won){track('pvpwin');SV.money+=60;addXp(40);}else addXp(15);saveSv();
+      const won = msg.winner === pvpState.playerId; addRating(won?25:-18);track('pvp');if(won){track('pvpwin');SV.war=(SV.war||0)+5;SV.money+=60;addXp(40);}else addXp(15);saveSv();
       if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
@@ -987,12 +1007,74 @@ document.addEventListener('click',e=>{
   else if(t.dataset&&t.dataset.tab){qTab=t.dataset.tab;renderQuests();}
 });
 
+
+// ── ONLINE: лидеры, кланы, клановые войны ──
+const API_BASE=SERVER_URL.replace(/^ws/,'http');
+let UID=null,NET=null,netErr=false,lastSync=0,socTab='players';
+try{const T=window.Telegram&&Telegram.WebApp,u=T&&T.initDataUnsafe&&T.initDataUnsafe.user;
+  UID=u&&u.id?'tg'+u.id:localStorage.getItem('fc_uid');
+  if(!UID){UID='w'+Math.random().toString(36).slice(2,12)+Date.now().toString(36);localStorage.setItem('fc_uid',UID)}}catch(e){UID=UID||'w'+Math.random().toString(36).slice(2,14)}
+async function api(route,body){
+  const T=window.Telegram&&Telegram.WebApp;
+  const r=await fetch(API_BASE+'/api/'+route,{method:'POST',headers:{'content-type':'application/json','x-uid':UID,'x-init':(T&&T.initData)||''},body:JSON.stringify(body||{})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error||'error');return j;
+}
+async function syncNow(force){
+  if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
+  const d=Math.min(60,SV.war||0);
+  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d});SV.war=(SV.war||0)-d;saveSv();netErr=false;}
+  catch(e){netErr=true;}
+  if($('socOverlay').classList.contains('show'))renderSoc();
+}
+async function netAct(route,body){
+  try{NET=await api(route,body);netErr=false;renderSoc();return true}catch(e){sl('⚠ '+e.message);return false}
+}
+function renderSoc(){
+  const L=$('socList');L.innerHTML='';
+  document.querySelectorAll('[data-st]').forEach(b=>b.classList.toggle('on',b.dataset.st===socTab));
+  if(!NET){L.innerHTML='<div class="hint">'+(netErr?'Нет связи с сервером. Попробуй позже.':'Загрузка…')+'</div>';return}
+  const me='';
+  if(socTab==='players'){
+    L.insertAdjacentHTML('beforeend','<div class="hint">Твоё место: <b style="color:#ffd24a">#'+NET.rank+'</b> из '+NET.total+'</div>');
+    NET.players.forEach(p=>{const mine=p.id===UID;L.insertAdjacentHTML('beforeend','<div class="row'+(mine?' me':'')+'"><span class="pl">'+(p.place<=3?['\u{1F947}','\u{1F948}','\u{1F949}'][p.place-1]:p.place)+'</span><span class="nm">'+p.name+'<small>ур. '+p.level+(p.clan?' • \u{1F6E1} '+p.clan:'')+'</small></span><span class="sc">\u{1F3C6} '+p.rating+'</span></div>')});
+  }else if(socTab==='clans'){
+    const last=NET.war.last;
+    L.insertAdjacentHTML('beforeend','<div class="warbox">⚔️ Клановая война недели<b>'+(last&&last.top.length?'Прошлая неделя: \u{1F947} '+last.top[0].name:'Набирай очки победами')+'</b>Топ-3 клана получают награду в понедельник</div>');
+    if(!NET.clans.length)L.insertAdjacentHTML('beforeend','<div class="hint">Кланов пока нет. Создай первый!</div>');
+    NET.clans.forEach((c,i)=>{const d=document.createElement('div');d.className='row'+(NET.mine&&NET.mine.id===c.id?' me':'');
+      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">\u{1F6E1} '+c.name+'<small>'+c.count+'/'+c.max+' бойцов</small></span><span class="sc">⚔ '+c.pts+'</span>';
+      if(!NET.mine&&c.count<c.max){const b=document.createElement('button');b.textContent='Вступить';b.onclick=()=>netAct('clan/join',{id:c.id});d.appendChild(b);}
+      L.appendChild(d)});
+  }else{
+    const m=NET.mine;
+    if(!m){
+      L.insertAdjacentHTML('beforeend','<div class="hint">Ты пока без клана. Вступи в чужой на вкладке «Кланы» или создай свой за \u{1F4B0}500</div><div class="inp"><input id="clanName" maxlength="18" placeholder="Название клана"><button class="sbtn" id="clanMake">Создать</button></div>');
+      $('clanMake').onclick=async()=>{if(SV.money<500){sl('Нужно \u{1F4B0}500');return}if(await netAct('clan/create',{name:$('clanName').value})){SV.money-=500;saveSv();refreshMenu();}};
+      return;
+    }
+    L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F6E1} '+m.name+'<b>⚔ '+m.pts+' очков недели</b>Очки: победа на лестнице +1, босс +3, победа в PvP +5</div>');
+    if(NET.reward){const r=NET.reward;L.insertAdjacentHTML('beforeend','<button class="sbtn" id="warClaim" style="width:100%;padding:12px;margin-bottom:10px;font-size:15px">\u{1F381} Награда за войну: место '+r.place+' — \u{1F4B0}'+r.money+' \u{1F9EC}'+r.sp+'</button>');
+      $('warClaim').onclick=async()=>{try{const j=await api('war/claim');giveReward({money:j.reward.money,sp:j.reward.sp});sl('\u{1F381} Награда получена!');await syncNow(true);refreshMenu();}catch(e){sl('⚠ '+e.message)}};}
+    m.members.forEach((p,i)=>L.insertAdjacentHTML('beforeend','<div class="row'+(p.id===UID?' me':'')+'"><span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+'</small></span><span class="sc">⚔ '+p.wpts+'</span></div>'));
+    L.insertAdjacentHTML('beforeend','<button class="sbtn" id="clanLeave" style="width:100%;margin-top:10px">Выйти из клана</button>');
+    $('clanLeave').onclick=()=>netAct('clan/leave');
+  }
+}
+function openSoc(tab){mo.classList.remove('show');socTab=tab;$('socOverlay').classList.add('show');renderSoc();syncNow(true);}
+document.addEventListener('click',e=>{
+  const t=e.target,id=t.id;
+  if(id==='btnTop')openSoc('players');else if(id==='btnClan')openSoc('mine');
+  else if(id==='socBack'){$('socOverlay').classList.remove('show');mo.classList.add('show');}
+  else if(t.dataset&&t.dataset.st){socTab=t.dataset.st;renderSoc();}
+});
+
 // ── MAIN MENU ──
 const LEAGUES=[[0,'Бронза'],[1100,'Серебро'],[1250,'Золото'],[1450,'Платина'],[1700,'Алмаз'],[2000,'Легенда']];
 function addRating(d){SV.rating=Math.max(0,(SV.rating||1000)+d);}
 function leagueOf(r){let i=0;LEAGUES.forEach((l,k)=>{if(r>=l[0])i=k});return i;}
 function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){return null}}
 function refreshMenu(){
+  try{syncNow()}catch(e){}
   try{const q=claimableCount(),b=$('bdQ');b.textContent=q;b.style.display=q?'block':'none';const sp=SV.sp||0,b2=$('bdS');b2.textContent=sp;b2.style.display=sp?'block':'none';}catch(e){console.error(e)}
   const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];
   $('mmName').textContent=P.name;$('mmMoney').textContent='💰 '+SV.money;$('mmLv').textContent=SV.level;

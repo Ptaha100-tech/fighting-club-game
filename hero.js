@@ -201,7 +201,8 @@ function pantsLeg(g,T,f,D,s){
   else{const e=lerpPt(p.knee,p.ank,(end-KNEE_Y)/(ANK_Y-KNEE_Y));
     full.addPath(tubeP(p.hip[0],p.hip[1],p.knee[0],p.knee[1],R1,R2));full.addPath(tubeP(p.knee[0],p.knee[1],e[0],e[1],R3,lerp(R3,R4,(end-KNEE_Y)/(ANK_Y-KNEE_Y))))}
   const x0=CX+s*43-R1,x1=CX+s*43+R1;
-  paint(g,full,sp.c,x0,x1,.9);
+  g.lineWidth=4.8;g.lineJoin='round';g.strokeStyle='rgba(18,8,4,.75)';g.stroke(full);
+  paint(g,full,sp.c,x0,x1,.9,null);
   g.save();g.clip(full);
   // складки
   g.strokeStyle='rgba(0,0,0,.26)';g.lineWidth=2.4;
@@ -226,7 +227,6 @@ function pantsLeg(g,T,f,D,s){
     g.strokeStyle=T.pants==='mmagold'?'#e0a030':'rgba(255,255,255,.55)';g.lineWidth=T.pants==='mmagold'?7:5;const e=lerpPt(p.hip,p.knee,(end-HIP_Y)/(KNEE_Y-HIP_Y));
     g.beginPath();g.moveTo(e[0]-R2-8,end+(end>KNEE_Y?0:0));g.lineTo(e[0]+R2+8,end);g.stroke()}
   g.restore();
-  g.lineWidth=2.4;g.strokeStyle='rgba(18,8,4,.75)';g.stroke(full);
   if(T.pants==='rags'){ // рваный низ: кожа сквозь дыры
     const e=lerpPt(p.knee,p.ank,(end-KNEE_Y)/(ANK_Y-KNEE_Y));g.fillStyle=f.skin;
     for(let i=0;i<6;i++){const x=e[0]-R4+i*(R4*2/5.5)+3;g.beginPath();g.moveTo(x-6,end+2);g.lineTo(x,end-9-(i%2)*7);g.lineTo(x+6,end+2);g.closePath();g.fill()}
