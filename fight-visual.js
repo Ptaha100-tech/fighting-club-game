@@ -353,7 +353,7 @@ function hairFront(g,f,st){
 /* st: {dmg,t,grit,blink,mouth,look,ko,exert} */
 function drawHead(g,f,st){
   const{hw,hh}=f,d=st.dmg,t=st.t;
-  const sw=clamp(.4+d*.35+st.exert*.5,0,1);
+  const sw=st.sweat!==undefined?st.sweat:clamp(.4+d*.35+st.exert*.5,0,1);
   hairBack(g,f);
   // ears
   for(const sx of[-1,1]){
@@ -824,6 +824,7 @@ window.FightVisual={
   /* режим игры: без авто-боя и тапов, лица по seed */
   setMode:(m)=>{const g=m==='game';S.auto=!g&&S.auto;S.interactive=!g;if(g)enableLite()},
   setPaused,quality:()=>Q,
+  kit:{makeFighter,drawHead,rng,blob,shade,rgba,yard,ring,mk},
   setFighters:(seedL,seedR,dmgL,dmgR)=>{
     L=mkState(seedL|0,215,1,clamp(+dmgL||0,0,1));R=mkState(seedR|0,505,-1,clamp(+dmgR||0,0,1));
     L.ko=L.dmg>=1;R.ko=R.dmg>=1;S.koT=0;S.parts.length=0;updateHud(true)},

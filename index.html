@@ -149,6 +149,47 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .win-btn:hover{background:#ff4444;color:#000}
 .win-btn-row{display:flex;gap:8px;justify-content:center}
 .hidden{display:none!important}
+
+#pathOverlay{background:#0a0a0a}
+#menuOverlay{padding:0;background:#0a0a0a;gap:0;overflow:hidden}
+.mm-top{display:flex;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 6px;background:linear-gradient(180deg,#1d1710,#100d09);border-bottom:2px solid #3a2c18;flex:none}
+.mm-ava{position:relative;width:62px;height:62px;border-radius:12px;border:3px solid #d9a441;box-shadow:0 0 0 2px #2a1d0a,0 0 14px rgba(217,164,65,.45);overflow:hidden;cursor:pointer;flex:none;background:#000}
+.mm-ava canvas,.mm-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.mm-cam{position:absolute;right:1px;bottom:1px;font-size:12px;background:rgba(0,0,0,.65);border-radius:6px;padding:0 3px}
+.mm-info{flex:1;min-width:0}.mm-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.mm-name{font-weight:800;font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mm-money{font-weight:800;font-size:14px;color:#ffd24a;background:#000a;border:1px solid #5a4416;border-radius:12px;padding:1px 9px;white-space:nowrap}
+.mm-lvrow{display:flex;align-items:center;gap:7px;margin-top:5px}
+.mm-lv{flex:none;width:28px;height:28px;border-radius:50%;background:radial-gradient(#ffd96a,#b8801f);color:#2a1800;font-weight:900;display:flex;align-items:center;justify-content:center;border:2px solid #fff3;font-size:14px}
+.mm-xp{position:relative;flex:1;height:18px;background:#000;border:1px solid #554;border-radius:9px;overflow:hidden}
+.mm-xp i{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(180deg,#5fd0ff,#1f7fc0);transition:width .5s}
+.mm-xp b{position:absolute;inset:0;text-align:center;font-size:11px;line-height:18px;color:#fff;text-shadow:0 1px 2px #000}
+.mm-rate{display:flex;align-items:center;justify-content:center;gap:10px;padding:5px 8px;background:#0d0a07;font-size:13px;font-weight:800;color:#ffd24a;flex:none}
+.mm-league{padding:1px 10px;border-radius:10px;background:linear-gradient(180deg,#8a5a2a,#5a3410);color:#ffe8c0;font-size:12px}
+.mm-next{font-size:11px;color:#9a8;font-weight:600}
+.mm-stage{position:relative;flex:1;min-height:0;display:flex;justify-content:center;background:#000;overflow:hidden}
+#mmCv{height:100%;width:auto;max-width:100%;object-fit:cover;aspect-ratio:720/900}
+.mm-tier{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);padding:3px 18px;border-radius:14px;background:linear-gradient(180deg,#000b,#000d);border:1.5px solid #d9a441;color:#ffd24a;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-size:13px;white-space:nowrap}
+.mm-side{position:absolute;top:10px;display:flex;flex-direction:column;gap:8px}.mm-side.l{left:8px}.mm-side.r{right:8px}
+.mm-sb{width:54px;padding:5px 0 3px;border:1.5px solid #6a5226;border-radius:10px;background:linear-gradient(180deg,#2c2214e0,#120d07e0);color:#f1dcae;font-size:10px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.mm-sb span{font-size:20px}.mm-sb:active{transform:scale(.94)}
+.mm-stats{display:flex;flex:none;background:#14100a;border-top:1px solid #3a2c18}
+.mm-stats div{flex:1;text-align:center;font-size:9px;color:#998;padding:5px 0 16px;text-transform:uppercase}
+.mm-stats b{display:block;font-size:16px;color:#fff;letter-spacing:0}
+.mm-nav{display:flex;flex:none;align-items:flex-end;background:linear-gradient(180deg,#1d1710,#0b0805);border-top:2px solid #3a2c18;padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.mm-nav button{flex:1;border:0;background:none;color:#cbb88a;font-family:inherit;font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0;cursor:pointer}
+.mm-nav button span{font-size:22px}
+.mm-nav .mm-go{flex:1.35;margin-top:-14px;padding:7px 0;border-radius:14px;background:linear-gradient(180deg,#e0382c,#8d1710);border:2px solid #ffb09a;color:#fff;font-size:13px;box-shadow:0 0 18px rgba(255,60,40,.55);animation:mmPulse 1.8s infinite}
+@keyframes mmPulse{50%{box-shadow:0 0 26px rgba(255,90,60,.85)}}
+.mm-nav button *,.mm-sb *{pointer-events:none}
+.pathlist{display:flex;flex-direction:column;gap:10px;padding-bottom:20px}
+.ptier{display:flex;gap:12px;align-items:center;background:#17120c;border:2px solid #3a2c18;border-radius:12px;padding:8px}
+.ptier.cur{border-color:#ffd24a;box-shadow:0 0 14px rgba(255,210,74,.35)}
+.ptier canvas{width:84px;height:105px;border-radius:8px;flex:none}
+.ptier.lock canvas{filter:grayscale(1) brightness(.35)}
+.ptier h4{font-size:16px;color:#ffd24a}.ptier p{font-size:12px;color:#aaa;margin-top:3px}
+.ptier .pl{display:inline-block;margin-top:5px;font-size:11px;font-weight:800;color:#fff;background:#3a2c18;border-radius:8px;padding:2px 8px}
+.ptier.cur .pl{background:#b8801f}
 </style>
 </head>
 <body>
@@ -193,13 +234,36 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 </div>
 
 <div class="overlay" id="menuOverlay">
-  <div class="otitle">🥊 БОЙЦОВСКИЙ КЛУБ</div>
-  <div class="omenu">
-    <button class="mbtn fight" id="btnFight">⚔️ НАЧАТЬ БОЙ</button>
-    <button class="mbtn" id="btnMyFighter">👤 МОЙ БОЕЦ</button>
-    <button class="mbtn" id="btnShop">🏪 МАГАЗИН</button>
-    <button class="mbtn fight" id="btnPvp">🌐 PVP БОЙ</button>
+  <div class="mm-top">
+    <label class="mm-ava" id="mmAva" title="Нажми, чтобы вставить своё фото">
+      <canvas id="mmAvaCv" width="120" height="120"></canvas><img id="mmAvaImg" alt="" style="display:none">
+      <span class="mm-cam">📷</span><input type="file" id="mmFile" accept="image/*" hidden>
+    </label>
+    <div class="mm-info">
+      <div class="mm-row"><span class="mm-name" id="mmName">Боец</span><span class="mm-money" id="mmMoney">💰 0</span></div>
+      <div class="mm-lvrow"><span class="mm-lv" id="mmLv">1</span><div class="mm-xp"><i id="mmXpBar"></i><b id="mmXpTxt">0 / 100</b></div></div>
+    </div>
   </div>
+  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span></div>
+  <div class="mm-stage">
+    <canvas id="mmCv"></canvas>
+    <div class="mm-tier" id="mmTier">Бомж</div>
+    <div class="mm-side l"><button class="mm-sb" id="btnPath"><span>🪜</span>Путь</button><button class="mm-sb" id="btnMyFighter2"><span>💪</span>Боец</button></div>
+    <div class="mm-side r"><button class="mm-sb" id="btnShop2"><span>🏪</span>Лавка</button><button class="mm-sb" id="btnAvaReset"><span>🔄</span>Фото</button></div>
+  </div>
+  <div class="mm-stats"><div><b id="mmW">0</b>побед</div><div><b id="mmL">0</b>поражений</div><div><b id="mmK">0</b>нокаутов</div><div><b id="mmH">100</b>здоровье</div></div>
+  <div class="mm-nav">
+    <button id="btnShop"><span>🏪</span>Магазин</button>
+    <button id="btnMyFighter"><span>👤</span>Мой боец</button>
+    <button id="btnFight" class="mm-go"><span>⚔️</span>В БОЙ</button>
+    <button id="btnPvp"><span>🌐</span>PvP</button>
+    <button id="btnPath2"><span>🪜</span>Путь</button>
+  </div>
+</div>
+<div class="overlay" id="pathOverlay">
+  <button class="back-btn" id="pathBack">← НАЗАД</button>
+  <div class="otitle">🪜 ПУТЬ БОЙЦА</div>
+  <div id="pathList" class="pathlist"></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -237,6 +301,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   </div>
 </div>
 <script src="fight-visual.js"></script>
+<script src="hero.js"></script>
 <script>
 // ── CONFIG ──
 const C={maxHealth:100,maxEnergy:100,energyPerTurn:8,energyPerAttack:15,baseDamage:{head:22,body:16,legs:12,uppercut:26},blockReduction:0.55,botThinkDelay:220,chatInterval:2000};
@@ -269,7 +334,7 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,rating:1000};
 let SV;
 function loadSave(){
   try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})}};return}throw 1}
@@ -434,7 +499,7 @@ function endCombat(win){
   S.phase='gameOver';sce(false);
   const o=OPP[S.selectedOpp];
   if(win){
-    SV.wins++;SV.money+=o.reward;
+    SV.wins++;SV.money+=o.reward;addRating(8+S.selectedOpp*2);
     if(E.health<=0){SV.totalKos++;}
     if(!SV.npcs.includes(S.selectedOpp))SV.npcs.push(S.selectedOpp);
     addXp(o.xp);
@@ -443,7 +508,7 @@ function endCombat(win){
     wr.textContent='\u{1F4B0} +'+o.reward+' \u043c\u043e\u043d\u0435\u0442 | \u2b50 +'+o.xp+' \u043e\u043f\u044b\u0442\u0430';
     wt.style.color='#ff6644';
   }else{
-    SV.losses++;
+    SV.losses++;addRating(-6);
     wt.textContent='\u{1F480} \u041f\u041e\u0420\u0410\u0416\u0415\u041d\u0418\u0415';
     ws.textContent=E.name+' \u043e\u0434\u043e\u043b\u0435\u043b...';
     wr.textContent='\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e';
@@ -522,9 +587,14 @@ function renderUpgrades(){
 document.addEventListener('click',(e)=>{
   const t=e.target;
   // Menu buttons
-  if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
-  else if(t.id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
-  else if(t.id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
+  const id=t.id==='btnMyFighter2'?'btnMyFighter':t.id==='btnShop2'?'btnShop':t.id==='btnPath2'?'btnPath':t.id;
+  if(false){}
+  else if(id==='btnPath'){mo.classList.remove('show');renderPath();$('pathOverlay').classList.add('show');}
+  else if(id==='pathBack'){$('pathOverlay').classList.remove('show');mo.classList.add('show');}
+  else if(id==='btnAvaReset'){try{localStorage.removeItem('fc_avatar')}catch(e){}refreshMenu();}
+  else if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
+  else if(id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
+  else if(id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
   else if(t.id==='btnPvp'){mo.classList.remove('show');$('pvpFindBtn').disabled=false;$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
   else if(t.id==='pvpFindBtn'){$('pvpFindBtn').disabled=true;$('pvpFindBtn').style.display='none';$('pvpCancelBtn').style.display='';$('pvpCancelBtn').disabled=false;sl('🔍 Поиск соперника...');pvpConnect();}
   else if(t.id==='pvpCancelBtn'){$('pvpFindBtn').disabled=false;$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpStatus').textContent='Поиск отменён';if(pvpWs){try{pvpWs.send(JSON.stringify({type:'cancel_search'}));}catch(e){}try{pvpWs.close();}catch(e){}pvpWs=null;}}
@@ -631,7 +701,7 @@ function pvpHandleMsg(msg) {
       break;
     }
     case 'end': {
-      const won = msg.winner === pvpState.playerId;
+      const won = msg.winner === pvpState.playerId; addRating(won?25:-18); saveSv();
       if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
@@ -697,6 +767,36 @@ const FV=window.FightVisual;FV.setMode('game');
 try{const T=window.Telegram&&Telegram.WebApp;if(T){T.ready();T.expand();try{T.disableVerticalSwipes&&T.disableVerticalSwipes()}catch(e){}
   const u=T.initDataUnsafe&&T.initDataUnsafe.user;if(u&&u.first_name)P.name=String(u.first_name).slice(0,16);
   T.setHeaderColor&&T.setHeaderColor('#0a0a0a');T.setBackgroundColor&&T.setBackgroundColor('#0a0a0a');}}catch(e){}
+
+// ── MAIN MENU ──
+const LEAGUES=[[0,'Бронза'],[1100,'Серебро'],[1250,'Золото'],[1450,'Платина'],[1700,'Алмаз'],[2000,'Легенда']];
+function addRating(d){SV.rating=Math.max(0,(SV.rating||1000)+d);}
+function leagueOf(r){let i=0;LEAGUES.forEach((l,k)=>{if(r>=l[0])i=k});return i;}
+function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){return null}}
+function refreshMenu(){
+  const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];
+  $('mmName').textContent=P.name;$('mmMoney').textContent='💰 '+SV.money;$('mmLv').textContent=SV.level;
+  const need=getLevelXp(SV.level);$('mmXpBar').style.width=cl(SV.xp/need*100,0,100)+'%';$('mmXpTxt').textContent=SV.xp+' / '+need;
+  $('mmRating').textContent='🏆 '+r;$('mmLeague').textContent=LEAGUES[li][1];$('mmNext').textContent=nx?'ещё '+(nx[0]-r)+' до «'+nx[1]+'»':'вершина!';
+  $('mmW').textContent=SV.wins;$('mmL').textContent=SV.losses;$('mmK').textContent=SV.totalKos;$('mmH').textContent=getMaxHP();
+  if(window.Hero){Hero.setPlayer({level:SV.level,seed:SV.seed});$('mmTier').textContent=Hero.TIERS[Hero.tier].name;
+    const av=getAvatar(),im=$('mmAvaImg'),cv=$('mmAvaCv');
+    if(av){im.src=av;im.style.display='';cv.style.display='none';}else{im.style.display='none';cv.style.display='';Hero.drawPortrait(cv.getContext('2d'),120);}}
+}
+function renderPath(){
+  const L=$('pathList');L.innerHTML='';const cur=Hero.tierOf(SV.level);
+  Hero.TIERS.forEach((T,i)=>{const d=document.createElement('div');d.className='ptier'+(i===cur?' cur':'')+(i>cur?' lock':'');
+    const c=Hero.renderTier(i,SV.seed,168,210);d.appendChild(c);
+    const x=document.createElement('div');x.innerHTML='<h4>'+(i>cur?'🔒 ':'')+T.name+'</h4><p>'+(i===cur?'Ты здесь':i<cur?'Пройдено':'Открывается на '+T.min+' уровне')+'</p><span class="pl">с '+T.min+' ур.</span>';d.appendChild(x);L.appendChild(d);});
+}
+(function(){
+  const cv=$('mmCv');Hero.mount(cv);
+  $('mmFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+    const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const g=c.getContext('2d'),m=Math.min(im.width,im.height);
+      g.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,160,160);try{localStorage.setItem('fc_avatar',c.toDataURL('image/jpeg',.82))}catch(x){}refreshMenu();URL.revokeObjectURL(im.src)};
+    im.src=URL.createObjectURL(f);e.target.value='';});
+  new MutationObserver(()=>{if(mo.classList.contains('show')){refreshMenu();Hero.start()}else Hero.stop()}).observe(mo,{attributes:true,attributeFilter:['class']});
+})();
 loadSave();renderFighter();
 FV.setFighters(SV.seed,1000,0,0);n1.textContent=P.name;
 l1.textContent='\u0423\u0440. '+SV.level;
@@ -704,7 +804,7 @@ n2.textContent='\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u0
 l2.textContent='\u0423\u0440. 1';
 sce(true);
 [oo,fo,so,wo].forEach(el=>el.classList.remove('show'));
-mo.classList.add('show');
+mo.classList.add('show');refreshMenu();Hero.start();
 sl('\u2694\ufe0f \u0411\u043e\u0439\u0446\u043e\u0432\u0441\u043a\u0438\u0439 \u043a\u043b\u0443\u0431 \u0436\u0434\u0451\u0442!');
 console.log('\u{1F94A} \u0411\u043e\u0439\u0446\u043e\u0432\u0441\u043a\u0438\u0439 \u043a\u043b\u0443\u0431 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d!');
 </script>
