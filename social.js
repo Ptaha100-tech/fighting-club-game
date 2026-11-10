@@ -6,9 +6,35 @@ const FILE = path.join(process.env.DATA_DIR || __dirname, 'social-data.json');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const MAX_MEMBERS = 20;
 let db = { players: {}, clans: {}, nextClan: 1, lastWar: null };
-try { db = { ...db, ...JSON.parse(fs.readFileSync(FILE, 'utf8')) }; } catch (e) {}
-let dirty = false;
-setInterval(() => { if (!dirty) return; dirty = false; try { fs.writeFileSync(FILE, JSON.stringify(db)); } catch (e) { console.error('save fail', e.message); } }, 5000);
+// Хранилище: Supabase (SUPABASE_URL + SUPABASE_KEY) -> иначе JSON-файл. Одна строка game_state(id=1,data jsonb).
+const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, ''), SB_KEY = process.env.SUPABASE_KEY || '';
+const useSB = !!(SB_URL && SB_KEY);
+const sbHeaders = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
+let dirty = false, loaded = false;
+const readyP = (async () => {
+  try {
+    if (useSB) {
+      const r = await fetch(SB_URL + '/rest/v1/game_state?id=eq.1&select=data', { headers: sbHeaders });
+      if (!r.ok) throw new Error('supabase load ' + r.status + ' ' + (await r.text()).slice(0, 120));
+      const rows = await r.json();
+      if (rows[0] && rows[0].data) db = { ...db, ...rows[0].data };
+      console.log('Storage: Supabase, players:', Object.keys(db.players).length);
+    } else {
+      db = { ...db, ...JSON.parse(fs.readFileSync(FILE, 'utf8')) };
+      console.log('Storage: file');
+    }
+  } catch (e) { console.log('Storage init:', e.message); if (useSB) { loaded = false; return; } }
+  loaded = true;
+})();
+if (useSB) setInterval(async () => { if (loaded) return; try { const r = await fetch(SB_URL + '/rest/v1/game_state?id=eq.1&select=data', { headers: sbHeaders }); if (!r.ok) return; const rows = await r.json(); const d = rows[0] && rows[0].data; if (d) db = { ...db, ...d, players: { ...d.players, ...db.players }, clans: { ...d.clans, ...db.clans } }; loaded = true; dirty = true; console.log('Storage: Supabase connected (late)'); } catch (e) {} }, 20000);
+async function persist() {
+  if (!loaded) return;     // не затираем базу, пока не прочитали её
+  if (useSB) {
+    const r = await fetch(SB_URL + '/rest/v1/game_state', { method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify({ id: 1, data: db, updated_at: new Date().toISOString() }) });
+    if (!r.ok) throw new Error('supabase save ' + r.status + ' ' + (await r.text()).slice(0, 120));
+  } else fs.writeFileSync(FILE, JSON.stringify(db));
+}
+setInterval(async () => { if (!dirty) return; dirty = false; try { await persist(); } catch (e) { dirty = true; console.error('save fail', e.message); } }, 5000);
 
 function weekKey(d = new Date()) {       // понедельник текущей недели (UTC)
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -59,6 +85,7 @@ function board(me) {
     if (i >= 0) reward = { place: i + 1, money: [1500, 900, 500][i], sp: [3, 2, 1][i] };
   }
   return { players: all.slice(0, 50).map((p, i) => ({ place: i + 1, id: p.id, name: p.name, level: p.level, rating: p.rating, seed: p.seed, clan: p.clan && db.clans[p.clan] ? db.clans[p.clan].name : '' })),
+    today: new Date().toISOString().slice(0, 10), login: me ? { last: (me.login || {}).last || '', streak: (me.login || {}).streak || 0, days: (me.login || {}).days || 0 } : null,
     total: all.length, rank, clans, mine, war: { week: db.war.week, last: db.lastWar }, reward };
 }
 
@@ -73,13 +100,23 @@ function handle(req, res, url, body) {
   let me = db.players[id];
   if (route === 'sync') {
     if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 };
+    if (body.save && typeof body.save === 'object') { const j = JSON.stringify(body.save); if (j.length < 12000) { me.save = j; me.saveTs = Date.now(); } }
     me.name = clean(body.name, 16) || me.name; me.level = num(body.level, 1, 200); me.rating = num(body.rating, 0, 9000); me.seed = num(body.seed, 1, 2e9) || me.seed; me.wins = num(body.wins, 0, 1e6);
     const d = num(body.warDelta, 0, 60);
     if (d && me.clan && db.clans[me.clan]) { me.wpts = (me.wpts || 0) + d; db.clans[me.clan].pts = (db.clans[me.clan].pts || 0) + d; }
     dirty = true; return out(200, board(me));
   }
+  if (route === 'load' && !me) return out(200, { save: null, ts: 0 });
   if (!me) return out(400, { error: 'sync first' });
   if (route === 'board') return out(200, board(me));
+  if (route === 'load') return out(200, { save: me.save ? JSON.parse(me.save) : null, ts: me.saveTs || 0 });
+  if (route === 'login/claim') {
+    const today = new Date().toISOString().slice(0, 10), y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const l = me.login || (me.login = { last: '', streak: 0, days: 0 });
+    if (l.last === today) return out(400, { error: 'Уже получено сегодня' });
+    l.streak = l.last === y ? (l.streak >= 7 ? 1 : l.streak + 1) : 1; l.last = today; l.days++;
+    dirty = true; return out(200, { day: l.streak, days: l.days, board: board(me) });
+  }
   if (route === 'clan/create') {
     if (me.clan) return out(400, { error: 'Сначала выйди из клана' });
     const name = clean(body.name, 18);
@@ -115,8 +152,8 @@ function middleware(req, res) {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return true; }
   if (req.method !== 'POST') { res.writeHead(405); res.end(); return true; }
   let raw = '';
-  req.on('data', d => { raw += d; if (raw.length > 4096) req.destroy(); });
-  req.on('end', () => { let b = {}; try { b = JSON.parse(raw || '{}'); } catch (e) {} try { handle(req, res, url, b); } catch (e) { console.error(e); res.writeHead(500); res.end('{}'); } });
+  req.on('data', d => { raw += d; if (raw.length > 20000) req.destroy(); });
+  req.on('end', () => { let b = {}; try { b = JSON.parse(raw || '{}'); } catch (e) {} readyP.then(() => { try { handle(req, res, url, b); } catch (e) { console.error(e); res.writeHead(500); res.end('{}'); } }); });
   return true;
 }
 module.exports = { middleware, _db: () => db };

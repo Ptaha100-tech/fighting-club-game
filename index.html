@@ -238,6 +238,20 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .inp{display:flex;gap:6px;margin:8px 0}
 .inp input{flex:1;min-width:0;padding:10px;border-radius:8px;border:1.5px solid #6a5226;background:#120d07;color:#fff;font-family:inherit;font-size:14px}
 .hint{text-align:center;color:#888;font-size:12px;margin:8px 0}
+
+#gearTop{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+#shopPrev{width:96px;height:120px;border-radius:10px;border:2px solid #3a2c18;background:#000;flex:none}
+#shopTot{font-size:12px;color:#ccc;line-height:1.9}
+.chip{display:inline-block;background:#241c0c;border:1px solid #5a4416;border-radius:8px;padding:0 6px;margin:0 3px 2px 0;font-size:11px;color:#ffd24a;font-weight:700}
+.slotbar{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:8px}
+.slotbar button{border:1.5px solid #3a2c18;background:#15110b;border-radius:9px;font-size:22px;padding:5px 0 2px;cursor:pointer;color:#fff;font-family:inherit}
+.slotbar button.on{border-color:#ffd24a;background:#2a1f0c}.slotbar small{display:block;font-size:10px;color:#6f6;height:12px}
+.gitem{display:flex;align-items:center;gap:10px;background:#17120c;border:2px solid #444;border-radius:12px;padding:8px 10px;margin-bottom:7px}
+.gitem.worn{background:#1d2a14;box-shadow:0 0 10px rgba(100,255,100,.25)}.gitem.lock{opacity:.55}
+.gic{font-size:30px;width:40px;text-align:center}.gtx{flex:1;min-width:0}.gtx b{display:block;font-size:14px;color:#fff}.gtx small{font-size:11px}
+.gitem button{border:0;border-radius:8px;background:#3a3a3a;color:#fff;font-weight:800;padding:8px 10px;font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.gitem button.go{background:linear-gradient(180deg,#3fb04a,#1f7a2b)}.gitem button.buy{background:linear-gradient(180deg,#e0a52c,#a56a10)}.gitem button:disabled{opacity:.45}
+#shopOverlay,#oppOverlay,#fighterOverlay{background:#0a0a0a}
 </style>
 </head>
 <body>
@@ -347,6 +361,8 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <button class="back-btn" id="shopBack">← НАЗАД</button>
   <div class="otitle">🏪 МАГАЗИН</div>
   <div style="text-align:center;font-size:clamp(12px,2.5vw,15px);color:#ffcc44;margin-bottom:8px" id="moneyDisplay">💰 0</div>
+  <div class="tabs"><button data-sh="gear" class="on">Одежда</button><button data-sh="train">Тренировки</button></div>
+  <div id="gearTop"><canvas id="shopPrev" width="240" height="300"></canvas><div id="shopTot"></div></div>
   <div class="oshop" id="shopList"></div>
 </div>
 <div class="win-overlay" id="winOverlay">
@@ -413,10 +429,10 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,war:0,rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,war:0,inv:{},eq:{},rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
 let SV;
 function loadSave(){
-  try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})},stat:{...DEF_SAVE.stat,...(j.stat||{})},sk:j.sk||{},qc:j.qc||{},login:{...DEF_SAVE.login,...(j.login||{})},daily:j.daily||{date:'',list:[],bonus:false}};
+  try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})},stat:{...DEF_SAVE.stat,...(j.stat||{})},sk:j.sk||{},inv:j.inv||{},eq:j.eq||{},qc:j.qc||{},login:{...DEF_SAVE.login,...(j.login||{})},daily:j.daily||{date:'',list:[],bonus:false}};
     if(!j.spInit){SV.spInit=1;SV.sp=(SV.level-1)*2}
     if(!j.career&&(j.npcs||[]).length)SV.career=Math.max(...j.npcs)+1;return}throw 1}
   catch{SV={...DEF_SAVE};}
@@ -425,23 +441,83 @@ function loadSave(){
 function saveSv(){try{localStorage.setItem('fc_save',JSON.stringify(SV));}catch(e){}}
 // ── STAT CALCULATION ──
 function getMaxHP(){
-  return C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18+sk('vit')*15;
+  return C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18+sk('vit')*15+gs('hp');
 }
 function getExtraDmg(){
-  return SV.ups.gloves*3+sk('fist')*2;
+  return SV.ups.gloves*3+sk('fist')*2+gs('dmg');
 }
 function getEnergyRegen(){
-  return C.energyPerTurn+SV.ups.sneakers*2+Math.round(sk('rec')*1.5);
+  return C.energyPerTurn+SV.ups.sneakers*2+Math.round(sk('rec')*1.5)+gs('reg');
 }
 function getLevelXp(lvl){
   return lvl*60+40;
 }
 function sk(k){return (SV.sk&&SV.sk[k])||0;}
-function getCrit(){return .15+sk('crit')*.015;}
-function getDodge(){return sk('dodge')*.015;}
+function getCrit(){return .15+sk('crit')*.015+gs('crit')/100;}
+function getDodge(){return Math.min(.5,sk('dodge')*.015+gs('dodge')/100);}
 function getPierce(){return Math.min(.92,C.blockReduction+sk('pierce')*.04);}
 function getGuard(){return Math.max(.2,C.blockReduction-sk('guard')*.03);}
-function getSkin(){return 1-sk('skin')*.015;}
+function getSkin(){return Math.max(.4,1-sk('skin')*.015-gs('armor')/100);}
+
+// ── GEAR ──
+const SLOTS=[['head','\u{1F9E2} Голова'],['body','\u{1F455} Тело'],['legs','\u{1FA73} Ноги'],['feet','\u{1F45F} Обувь'],['hands','\u{1F94A} Руки'],['acc','\u{1F48E} Аксессуар']];
+const RAR={c:['Обычное','#9a9a9a'],r:['Редкое','#4aa3ff'],e:['Эпическое','#b06bff'],l:['Легендарное','#ffb02e']};
+const STN={dmg:['\u{1F4AA}','урон',''],hp:['❤️','жизнь',''],crit:['\u{1F4A5}','крит','%'],dodge:['\u{1F4A8}','уворот','%'],armor:['\u{1F6E1}️','броня','%'],reg:['⚡','энергия','']};
+// slot,id,name,icon,rarity,min level,price,stats,visual
+const GEAR=[
+ ['head','h1','Вязаная шапка','\u{1F9E2}','c',1,40,{hp:10},{hair:'beanie',hat:'#3b4a58'}],
+ ['head','h2','Кепка пацана','\u{1F9E2}','c',3,120,{dodge:2,hp:8},{hair:'cap',hat:'#6a2f2f'}],
+ ['head','h3','Ирокез','\u{1F918}','r',10,450,{crit:3,dmg:1},{hair:'mohawk'}],
+ ['head','h4','Бритая голова','\u{1F9B2}','r',14,800,{armor:3,hp:15},{hair:'bald'}],
+ ['body','b1','Спортивная куртка','\u{1F9E5}','c',4,250,{armor:2,hp:15},{top:'track'}],
+ ['body','b2','Майка-борцовка','\u{1F3BD}','c',8,500,{dmg:2,hp:10},{top:'tank'}],
+ ['body','b3','Голый торс','\u{1F4AA}','r',13,900,{crit:3,hp:25},{top:'bare'}],
+ ['body','b4','Чемпионский халат','\u{1F451}','e',30,5000,{armor:5,hp:40,dmg:2},{top:'robe'}],
+ ['legs','l1','Джинсы','\u{1F456}','c',6,300,{hp:15},{pants:'jeans'}],
+ ['legs','l2','Трусы боксёра','\u{1FA73}','r',13,800,{dodge:3,hp:15},{pants:'box'}],
+ ['legs','l3','Шорты ММА','\u{1FA73}','r',19,1500,{dmg:2,dodge:2,hp:20},{pants:'mma'}],
+ ['legs','l4','Шорты PRO','\u{1FA73}','e',26,3000,{armor:3,dodge:3,dmg:2},{pants:'mmapro'}],
+ ['legs','l5','Золотые шорты','\u{1F31F}','l',40,8000,{armor:4,dodge:4,dmg:4,hp:30},{pants:'mmagold'}],
+ ['feet','f1','Кроссовки','\u{1F45F}','c',4,250,{reg:1,dodge:1},{shoes:'sneaker'}],
+ ['feet','f2','Ботинки','\u{1F97E}','c',8,500,{armor:2,hp:10},{shoes:'boots'}],
+ ['feet','f3','Боксёрки','\u{1F94A}','r',13,900,{dodge:3,reg:1},{shoes:'boxboots'}],
+ ['feet','f4','Босые ноги (борцовские)','\u{1F9B6}','r',19,1200,{dodge:4,reg:1},{shoes:'bare'}],
+ ['hands','g1','Бинты','\u{1FA79}','c',8,400,{dmg:2},{hands:'wraps'}],
+ ['hands','g2','Боксёрские перчатки','\u{1F94A}','r',13,1000,{dmg:4,crit:2},{hands:'boxglove'}],
+ ['hands','g3','Перчатки ММА','\u{1F9E4}','e',19,2000,{dmg:6,crit:3},{hands:'mmaglove'}],
+ ['hands','g4','Золотые перчатки','\u{1F31F}','l',40,9000,{dmg:10,crit:5},{hands:'goldglove'}],
+ ['acc','a1','Золотая цепь','\u{1F4FF}','c',4,300,{crit:2},{prop:'chain'}],
+ ['acc','a2','Полотенце на плече','\u{1F9FB}','c',13,600,{reg:1,hp:10},{prop:'towel'}],
+ ['acc','a3','Татуировки','\u{1F409}','e',26,2500,{dmg:3,armor:2},{prop:'tattoo'}],
+ ['acc','a4','Пояс чемпиона','\u{1F3C6}','l',45,20000,{dmg:8,hp:60,crit:5},{prop:'belt'}]
+].map(a=>({slot:a[0],id:a[1],name:a[2],icon:a[3],r:a[4],lvl:a[5],price:a[6],st:a[7],vis:a[8]}));
+const GEARBY={};GEAR.forEach(g=>GEARBY[g.id]=g);
+function gs(k){let v=0;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id])v+=g.st[k]||0}return v;}
+function gearVis(){const o={};let any=false;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id]){Object.assign(o,g.vis);any=true}}return any?o:null;}
+let shopTab='gear',gearSlot='head';
+function stChips(st){return Object.keys(st).map(k=>'<span class="chip">'+STN[k][0]+' +'+st[k]+STN[k][2]+'</span>').join('');}
+function renderGear(){
+  const list=$('shopList');list.innerHTML='';
+  const pv=$('shopPrev');
+  if(window.Hero){const c=Hero.renderTier(Hero.tierOf(SV.level),SV.seed,pv.width,pv.height,gearVis());const g=pv.getContext('2d');g.clearRect(0,0,pv.width,pv.height);g.drawImage(c,0,0);}
+  const tot=['dmg','hp','crit','dodge','armor','reg'].map(k=>gs(k)?'<span class="chip">'+STN[k][0]+' +'+gs(k)+STN[k][2]+'</span>':'').join('')||'<span style="color:#888">Ничего не надето</span>';
+  $('shopTot').innerHTML='Бонусы от вещей: '+tot;
+  const bar=document.createElement('div');bar.className='slotbar';
+  SLOTS.forEach(sl=>{const b=document.createElement('button');b.className=gearSlot===sl[0]?'on':'';const e=GEARBY[SV.eq[sl[0]]];b.innerHTML=sl[1].split(' ')[0]+'<small>'+(e&&SV.inv[e.id]?'✓':'')+'</small>';b.onclick=()=>{gearSlot=sl[0];renderGear()};bar.appendChild(b)});
+  list.appendChild(bar);
+  GEAR.filter(g=>g.slot===gearSlot).forEach(g=>{
+    const own=!!SV.inv[g.id],worn=SV.eq[g.slot]===g.id&&own,locked=SV.level<g.lvl;
+    const d=document.createElement('div');d.className='gitem'+(worn?' worn':'')+(locked&&!own?' lock':'');d.style.borderColor=RAR[g.r][1];
+    d.innerHTML='<div class="gic">'+g.icon+'</div><div class="gtx"><b>'+g.name+'</b><small style="color:'+RAR[g.r][1]+'">'+RAR[g.r][0]+'</small><div>'+stChips(g.st)+'</div></div>';
+    const b=document.createElement('button');
+    if(worn){b.textContent='Снять';b.onclick=()=>{delete SV.eq[g.slot];saveSv();renderGear();refreshMenu()};}
+    else if(own){b.textContent='Надеть';b.className='go';b.onclick=()=>{SV.eq[g.slot]=g.id;saveSv();renderGear();refreshMenu()};}
+    else if(locked){b.textContent='\u{1F512} ур.'+g.lvl;b.disabled=true;}
+    else{b.textContent='\u{1F4B0}'+g.price;b.className='buy';b.disabled=SV.money<g.price;b.onclick=()=>{if(SV.money<g.price)return;SV.money-=g.price;SV.inv[g.id]=true;SV.eq[g.slot]=g.id;track('spend',g.price);saveSv();$('moneyDisplay').textContent='\u{1F4B0} '+SV.money;renderGear();refreshMenu();sl('✓ '+g.name)};}
+    d.appendChild(b);list.appendChild(d);
+  });
+}
+
 // ── DOM REFS ──
 const $=id=>document.getElementById(id);
 const h1=$('h1'),hv1=$('hv1'),h2=$('h2'),hv2=$('hv2');
@@ -627,7 +703,7 @@ function renderFighter(){
   const mh=getMaxHP(),ed=getExtraDmg(),er=getEnergyRegen();
   const lvl=SV.level,nextXp=getLevelXp(lvl);
   const stats=[
-    ['\u0423\u0440\u043e\u0432\u0435\u043d\u044c',lvl],
+    ['\u0423\u0440\u043e\u0432\u0435\u043d\u044c',lvl],['\u0428\u0430\u043d\u0441 \u043a\u0440\u0438\u0442\u0430',Math.round(getCrit()*100)+'%'],['\u0423\u0432\u043e\u0440\u043e\u0442',Math.round(getDodge()*100)+'%'],['\u0411\u0440\u043e\u043d\u044f',Math.round((1-getSkin())*100)+'%'],
     ['\u041e\u043f\u044b\u0442',SV.xp+'/'+nextXp],
     ['\u041c\u0430\u043a\u0441. \u0436\u0438\u0437\u043d\u044c',mh],
     ['\u0421\u0438\u043b\u0430 \u0443\u0434\u0430\u0440\u0430',22+ed],
@@ -640,8 +716,11 @@ function renderFighter(){
   g.innerHTML=stats.map(s=>'<div class="srow"><span class="sl">'+s[0]+'</span><span class="sv">'+s[1]+'</span></div>').join('');
 }
 function renderShop(){
-  const list=$('shopList');list.innerHTML='';
   const md=$('moneyDisplay');md.textContent='\u{1F4B0} '+SV.money;
+  document.querySelectorAll('[data-sh]').forEach(b=>b.classList.toggle('on',b.dataset.sh===shopTab));
+  $('gearTop').style.display=shopTab==='gear'?'':'none';
+  if(shopTab==='gear'){renderGear();return}
+  const list=$('shopList');list.innerHTML='';
   SHOP_ITEMS.forEach(item=>{
     const lvl=SV.ups[item.stat];
     const price=Math.round(item.basePrice*Math.pow(item.mult,lvl));
@@ -738,6 +817,7 @@ const SERVER_URL = /^https?:$/.test(location.protocol) && location.host && !/git
 let pvpWs = null;
 let pvpState = { playerId: null, myHP: 100, oppHP: 100, myTurn: false, inMatch: false };
 let pvpLogLines = [];
+let pvpMax = { me: 100, opp: 100 };
 
 function pvpConnect() {
   if (pvpWs) { try { pvpWs.close(); } catch(e) {} pvpWs = null; }
@@ -746,7 +826,7 @@ function pvpConnect() {
   }
   pvpWs.onopen = () => {
     $('pvpStatus').textContent = 'Подключено. Ищем соперника...';
-    pvpWs.send(JSON.stringify({ type: 'find_match', name: P.name, seed: SV.seed }));
+    pvpWs.send(JSON.stringify({ type: 'find_match', name: P.name, seed: SV.seed, prof: { lvl: SV.level, hp: getMaxHP(), dmg: getExtraDmg(), crit: getCrit(), dodge: getDodge(), armor: 1 - getSkin() } }));
   };
   pvpWs.onmessage = (ev) => { try { pvpHandleMsg(JSON.parse(ev.data)); } catch(e) {} };
   pvpWs.onclose = () => {
@@ -769,6 +849,8 @@ function pvpHandleMsg(msg) {
     case 'ready': {
       pvpState.playerId = msg.playerId;
       pvpState.myHP = msg.hp[msg.playerId];
+      pvpMax.me = msg.maxHp ? msg.maxHp[msg.playerId] : 100; pvpMax.opp = msg.maxHp ? msg.maxHp[msg.playerId === 'A' ? 'B' : 'A'] : 100;
+      pvpState.ghost = !!msg.ghost; pvpState.oppLvl = msg.opponentLevel || 1;
       pvpState.oppHP = msg.hp[msg.playerId === 'A' ? 'B' : 'A'];
       pvpState.myTurn = msg.turn === msg.playerId;
       pvpState.inMatch = true; pvpLogLines = [];
@@ -784,15 +866,15 @@ function pvpHandleMsg(msg) {
       pvpState.myTurn = msg.turn === pvpState.playerId;
       const atkName = pvpState.playerId === msg.attacker ? 'Ты' : 'Соперник';
       const meAtk = pvpState.playerId === msg.attacker;
-      FV.strike(meAtk ? 'left' : 'right', { to: 1 - (meAtk ? pvpState.oppHP : pvpState.myHP) / 100, crit: msg.isCrit });
-      let line = atkName + ' бьёт на ' + msg.dmg;
+      FV.strike(meAtk ? 'left' : 'right', { to: 1 - (meAtk ? pvpState.oppHP / pvpMax.opp : pvpState.myHP / pvpMax.me), crit: msg.isCrit, blocked: !!msg.dodged });
+      let line = msg.dodged ? (meAtk ? 'Соперник увернулся!' : '💨 Ты увернулся!') : atkName + ' бьёт на ' + msg.dmg;
       if (msg.isCrit) line = '★ КРИТ! ' + line;
       pvpLogLines.push(line);
       updatePvPUI();
       break;
     }
     case 'end': {
-      const won = msg.winner === pvpState.playerId; addRating(won?25:-18);track('pvp');if(won){track('pvpwin');SV.war=(SV.war||0)+5;SV.money+=60;addXp(40);}else addXp(15);saveSv();
+      const won = msg.winner === pvpState.playerId; addRating(pvpState.ghost?(won?12:-8):(won?25:-18));track('pvp');if(won){track('pvpwin');SV.war=(SV.war||0)+(pvpState.ghost?3:5);SV.money+=pvpState.ghost?40:60;addXp(40);}else addXp(15);saveSv();
       if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
@@ -820,16 +902,15 @@ function startPvPBattle() {
   $('atkRow').style.display = 'none';
   $('pvpZone').style.display = '';
   n1.textContent = '\u0422\u044b'; l1.textContent = 'PvP';
-  n2.textContent = pvpState.oppName || '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a'; l2.textContent = 'PvP';
+  n2.textContent = pvpState.oppName || '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a'; l2.textContent = pvpState.ghost ? 'Призрак Ур. ' + pvpState.oppLvl : 'Ур. ' + pvpState.oppLvl;
   rd.textContent = 'PVP \u0411\u041e\u0419';
   updatePvPUI();
 }
 function updatePvPUI() {
-  const mh = 100;
-  const h1p = cl(pvpState.myHP / mh * 100, 0, 100);
-  const h2p = cl(pvpState.oppHP / mh * 100, 0, 100);
-  h1.style.width = h1p + '%'; hv1.textContent = Math.ceil(pvpState.myHP) + ' / ' + mh;
-  h2.style.width = h2p + '%'; hv2.textContent = Math.ceil(pvpState.oppHP) + ' / ' + mh;
+  const h1p = cl(pvpState.myHP / pvpMax.me * 100, 0, 100);
+  const h2p = cl(pvpState.oppHP / pvpMax.opp * 100, 0, 100);
+  h1.style.width = h1p + '%'; hv1.textContent = Math.ceil(pvpState.myHP) + ' / ' + pvpMax.me;
+  h2.style.width = h2p + '%'; hv2.textContent = Math.ceil(pvpState.oppHP) + ' / ' + pvpMax.opp;
   $('pvpAtkBtn').disabled = !pvpState.myTurn;
   $('pvpTurnInd').textContent = pvpState.myTurn ? '\u{1F44A} \u0422\u0432\u043e\u0439 \u0445\u043e\u0434!' : '\u23F3 \u0425\u043e\u0434 \u043f\u0440\u043e\u0442\u0438\u0432\u043d\u0438\u043a\u0430...';
   updatePvPLog();
@@ -909,7 +990,7 @@ const DPOOL=[
  {t:'pvp',txt:'Сыграть {n} PvP-бой',g:[1,1,2],r:1.6}
 ];
 function ensureDaily(){
-  const today=dstr();if(SV.daily&&SV.daily.date===today)return;
+  const today=todayStr();if(SV.daily&&SV.daily.date===today)return;
   let seed=0;for(const c of today)seed=(seed*31+c.charCodeAt(0))>>>0;
   const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const pool=DPOOL.slice(),list=[],tier=SV.level<5?0:SV.level<15?1:2;
@@ -942,15 +1023,21 @@ const CHAINS=[
 function chainStage(c){const i=SV.qc[c.n]||0;return i<c.st.length?c.st[i]:null;}
 // login bonus
 const LOGIN=[{money:100},{money:150},{money:200,xp:100},{money:300},{money:400,sp:1},{money:600,xp:200},{money:1500,sp:3}];
+function todayStr(){return (NET&&NET.today)||dstr();}
+function prevDay(str){const d=new Date(str+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10);}
 function loginPreview(){
-  const l=SV.login,today=dstr();
+  const l=(NET&&NET.login)||SV.login,today=todayStr();
   if(l.last===today)return{claimed:true,day:l.streak};
-  const nd=l.last===yday()?(l.streak>=7?1:l.streak+1):1;return{claimed:false,day:nd};
+  const nd=l.last===prevDay(today)?(l.streak>=7?1:l.streak+1):1;return{claimed:false,day:nd};
 }
-function claimLogin(){
+async function claimLogin(){
   const p=loginPreview();if(p.claimed)return;
-  SV.login={last:dstr(),streak:p.day};SV.stat.loginDays++;giveReward(LOGIN[p.day-1]);saveSv();
-  sl('\u{1F381} Бонус дня '+p.day+': '+rewardTxt(LOGIN[p.day-1]));
+  let day=p.day,today=todayStr();
+  try{const j=await api('login/claim');NET=j.board;day=j.day;today=NET.today;SV.stat.loginDays=Math.max(SV.stat.loginDays+1,j.days);}
+  catch(e){if(/^Уже/.test(e.message)){await syncNow(true);return}
+    SV.stat.loginDays++;}
+  SV.login={last:today,streak:day};giveReward(LOGIN[day-1]);saveSv();
+  sl('\u{1F381} Бонус дня '+day+': '+rewardTxt(LOGIN[day-1]));
 }
 function claimableCount(){
   ensureDaily();let n=0;
@@ -993,7 +1080,7 @@ function renderQuests(){
     L.appendChild(g);
     const b=document.createElement('button');b.className='sbtn';b.style.cssText='width:100%;margin-top:14px;padding:12px;font-size:16px';
     b.textContent=p.claimed?'✓ Сегодняшний бонус получен. Заходи завтра!':'\u{1F381} Забрать бонус дня '+p.day;b.disabled=p.claimed;
-    b.onclick=()=>{claimLogin();renderQuests();refreshMenu();};L.appendChild(b);
+    b.onclick=async()=>{await claimLogin();renderQuests();refreshMenu();};L.appendChild(b);
     L.insertAdjacentHTML('beforeend','<div style="text-align:center;color:#888;font-size:12px;margin-top:8px">Заходи каждый день подряд: пропуск сбрасывает серию. На 7-й день — главный приз.</div>');
   }
 }
@@ -1019,10 +1106,15 @@ async function api(route,body){
   const r=await fetch(API_BASE+'/api/'+route,{method:'POST',headers:{'content-type':'application/json','x-uid':UID,'x-init':(T&&T.initData)||''},body:JSON.stringify(body||{})});
   const j=await r.json();if(!r.ok)throw new Error(j.error||'error');return j;
 }
+function isFresh(){return SV.wins===0&&SV.level===1&&SV.money===0&&!SV.login.last&&!SV.stat.loginDays;}
+async function restoreFromServer(){
+  if(!isFresh())return;
+  try{const j=await api('load');if(j.save&&isFresh()){SV={...DEF_SAVE,...j.save,ups:{...DEF_SAVE.ups,...(j.save.ups||{})},stat:{...DEF_SAVE.stat,...(j.save.stat||{})},login:{...DEF_SAVE.login,...(j.save.login||{})}};saveSv();refreshMenu();sl('☁ Прогресс восстановлен с сервера');}}catch(e){}
+}
 async function syncNow(force){
   if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
   const d=Math.min(60,SV.war||0);
-  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d});SV.war=(SV.war||0)-d;saveSv();netErr=false;}
+  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;saveSv();netErr=false;}
   catch(e){netErr=true;}
   if($('socOverlay').classList.contains('show'))renderSoc();
 }
@@ -1065,6 +1157,7 @@ document.addEventListener('click',e=>{
   const t=e.target,id=t.id;
   if(id==='btnTop')openSoc('players');else if(id==='btnClan')openSoc('mine');
   else if(id==='socBack'){$('socOverlay').classList.remove('show');mo.classList.add('show');}
+  else if(t.dataset&&t.dataset.sh){shopTab=t.dataset.sh;renderShop();}
   else if(t.dataset&&t.dataset.st){socTab=t.dataset.st;renderSoc();}
 });
 
@@ -1081,7 +1174,7 @@ function refreshMenu(){
   const need=getLevelXp(SV.level);$('mmXpBar').style.width=cl(SV.xp/need*100,0,100)+'%';$('mmXpTxt').textContent=SV.xp+' / '+need;
   $('mmRating').textContent='🏆 '+r;$('mmLeague').textContent=LEAGUES[li][1];$('mmNext').textContent=nx?'ещё '+(nx[0]-r)+' до «'+nx[1]+'»':'вершина!';
   $('mmW').textContent=SV.wins;$('mmL').textContent=SV.losses;$('mmK').textContent=SV.totalKos;$('mmH').textContent=getMaxHP();
-  if(window.Hero){Hero.setPlayer({level:SV.level,seed:SV.seed});$('mmTier').textContent=Hero.TIERS[Hero.tier].name;
+  if(window.Hero){Hero.setPlayer({level:SV.level,seed:SV.seed,gear:gearVis()});$('mmTier').textContent=Hero.TIERS[Hero.tier].name;
     const av=getAvatar(),im=$('mmAvaImg'),cv=$('mmAvaCv');
     if(av){im.src=av;im.style.display='';cv.style.display='none';}else{im.style.display='none';cv.style.display='';Hero.drawPortrait(cv.getContext('2d'),120);}}
 }
@@ -1099,7 +1192,7 @@ function renderPath(){
     im.src=URL.createObjectURL(f);e.target.value='';});
   new MutationObserver(()=>{if(mo.classList.contains('show')){refreshMenu();Hero.start()}else Hero.stop()}).observe(mo,{attributes:true,attributeFilter:['class']});
 })();
-loadSave();renderFighter();
+loadSave();renderFighter();restoreFromServer().then(()=>syncNow(true));
 FV.setFighters(SV.seed,1000,0,0);n1.textContent=P.name;
 l1.textContent='\u0423\u0440. '+SV.level;
 n2.textContent='\u0413\u043e\u043f\u043d\u0438\u043a \u0412\u0438\u0442\u0451\u043a';

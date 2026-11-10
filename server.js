@@ -38,27 +38,44 @@ setInterval(() => {
 
 // ── State ──
 const queue = [];        // ws connections waiting for match
-const rooms = {};        // roomId -> { A: ws, B: ws, hp: {A,B}, turn: 'A'|'B' }
+const rooms = {};        // roomId -> { A, B, ghost?, hp, maxHp, prof, turn, timer }
 let roomCounter = 0;
+const GHOST_WAIT_MS = Number(process.env.GHOST_MS) || 9000;   // нет живого соперника -> бой с «призраком» другого игрока
+const GHOST_NAMES = ['Серый','Лысый','Кривой','Рыжий','Мрачный','Бешеный','Щербатый','Тощий'];
 
-// ── Helpers ──
 function send(ws, data) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(data));
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data));
 }
-
-function calcDamage() {
-  const base = 15;
-  const isCrit = Math.random() < 0.20;
-  const dmg = isCrit ? Math.round(base * 1.5) : base;
-  return { dmg, isCrit };
+const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Number(v) || 0));
+// Профиль бойца присылает клиент, сервер режет значения по потолкам уровня
+function sanitizeProf(p) {
+  p = p || {};
+  const lvl = Math.round(num(p.lvl, 1, 100));
+  return {
+    lvl,
+    hp: Math.round(num(p.hp, 100, 150 + lvl * 45)),
+    dmg: Math.round(num(p.dmg, 0, 8 + lvl * 1.2)),
+    crit: num(p.crit, 0.1, 0.5),
+    dodge: num(p.dodge, 0, 0.5),
+    armor: num(p.armor, 0, 0.55)
+  };
+}
+function ghostProf(lvl) {
+  return sanitizeProf({ lvl, hp: 100 + (lvl - 1) * 12 + lvl * 4, dmg: Math.round(lvl * .6), crit: .15 + lvl * .002, dodge: lvl * .003, armor: lvl * .004 });
+}
+function computeHit(atk, def) {
+  if (Math.random() < def.dodge) return { dmg: 0, isCrit: false, dodged: true };
+  const isCrit = Math.random() < atk.crit;
+  let d = (15 + atk.dmg) * (0.9 + Math.random() * 0.2) * (1 - def.armor);
+  if (isCrit) d *= 1.5;
+  return { dmg: Math.max(1, Math.round(d)), isCrit, dodged: false };
 }
 
 function armTurnTimer(roomId) {
   const room = rooms[roomId];
   if (!room) return;
   clearTimeout(room.timer);
+  if (room.ghost && room.turn === 'B') return;   // за призрака ходит сервер
   room.timer = setTimeout(() => {
     const r = rooms[roomId];
     if (!r) return;
@@ -69,31 +86,48 @@ function armTurnTimer(roomId) {
   }, TURN_MS);
 }
 
-function endRoom(roomId) {
-  const room = rooms[roomId];
-  if (!room) return;
-  clearTimeout(room.timer);
-  // Notify remaining player
-  if (room.A) send(room.A, { type: 'opponent_left' });
-  if (room.B) send(room.B, { type: 'opponent_left' });
-  delete rooms[roomId];
-}
-
 function removeFromQueue(ws) {
   const idx = queue.indexOf(ws);
   if (idx !== -1) queue.splice(idx, 1);
+  clearTimeout(ws.ghostTimer);
+}
+function roomOf(ws) {
+  for (const rid in rooms) { const r = rooms[rid]; if (r.A === ws || r.B === ws) return [rid, r]; }
+  return [null, null];
 }
 
-function getPlayerId(room, ws) {
-  if (room.A === ws) return 'A';
-  if (room.B === ws) return 'B';
-  return null;
+function startRoom(p1, p2, ghost) {
+  roomCounter++;
+  const roomId = 'room_' + roomCounter;
+  const prof = { A: p1.prof, B: ghost ? ghost.prof : p2.prof };
+  const maxHp = { A: prof.A.hp, B: prof.B.hp };
+  rooms[roomId] = { A: p1, B: ghost ? null : p2, ghost: ghost || null, hp: { ...maxHp }, maxHp, prof, turn: 'A', timer: null };
+  armTurnTimer(roomId);
+  const base = { type: 'ready', hp: { ...maxHp }, maxHp, turn: 'A' };
+  send(p1, { ...base, playerId: 'A', opponentName: ghost ? ghost.name : p2.pname, opponentSeed: ghost ? ghost.seed : p2.seed, opponentLevel: prof.B.lvl, ghost: !!ghost });
+  if (!ghost) send(p2, { ...base, playerId: 'B', opponentName: p1.pname, opponentSeed: p1.seed, opponentLevel: prof.A.lvl });
+  console.log('Match started:', roomId, ghost ? '(ghost)' : '');
 }
 
-function getOpponentId(room, ws) {
-  if (room.A === ws) return 'B';
-  if (room.B === ws) return 'A';
-  return null;
+function doHit(roomId, attackerId) {
+  const room = rooms[roomId];
+  if (!room) return;
+  const opponentId = attackerId === 'A' ? 'B' : 'A';
+  const { dmg, isCrit, dodged } = computeHit(room.prof[attackerId], room.prof[opponentId]);
+  room.hp[opponentId] = Math.max(0, room.hp[opponentId] - dmg);
+  room.turn = opponentId;
+  armTurnTimer(roomId);
+  const upd = { type: 'update', hp: { ...room.hp }, maxHp: room.maxHp, turn: room.turn, dmg, isCrit, dodged, target: opponentId, attacker: attackerId };
+  send(room.A, upd); send(room.B, upd);
+  if (room.hp[opponentId] <= 0) {
+    send(room.A, { type: 'end', winner: attackerId, playerId: 'A' });
+    send(room.B, { type: 'end', winner: attackerId, playerId: 'B' });
+    clearTimeout(room.timer);
+    delete rooms[roomId];
+    console.log('Match ended:', roomId, 'winner:', attackerId);
+    return;
+  }
+  if (room.ghost && room.turn === 'B') setTimeout(() => { if (rooms[roomId]) doHit(roomId, 'B'); }, 1000 + Math.random() * 600);
 }
 
 // ── Connection handler ──
@@ -105,131 +139,51 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (raw) => {
     let msg;
-    try {
-      msg = JSON.parse(raw);
-    } catch {
-      send(ws, { type: 'error', text: 'Invalid JSON' });
-      return;
-    }
+    try { msg = JSON.parse(raw); } catch { send(ws, { type: 'error', text: 'Invalid JSON' }); return; }
 
     switch (msg.type) {
       case 'find_match': {
-        // Already in queue or in a room?
-        if (queue.includes(ws)) {
-          send(ws, { type: 'searching' });
-          return;
-        }
-        for (const rid in rooms) {
-          const r = rooms[rid];
-          if (r.A === ws || r.B === ws) {
-            send(ws, { type: 'error', text: 'You are already in a match' });
-            return;
-          }
-        }
-
+        if (queue.includes(ws)) { send(ws, { type: 'searching' }); return; }
+        if (roomOf(ws)[1]) { send(ws, { type: 'error', text: 'You are already in a match' }); return; }
         ws.pname = String(msg.name || 'Боец').replace(/[<>&"']/g, '').slice(0, 20) || 'Боец';
         ws.seed = Number.isInteger(msg.seed) ? Math.abs(msg.seed) % 2000000000 : Math.floor(Math.random() * 2e9);
+        ws.prof = sanitizeProf(msg.prof);
         queue.push(ws);
         send(ws, { type: 'searching' });
-
-        // If we have 2 players, match them
         if (queue.length >= 2) {
-          const p1 = queue.shift();
-          const p2 = queue.shift();
-
-          roomCounter++;
-          const roomId = 'room_' + roomCounter;
-          rooms[roomId] = {
-            A: p1, B: p2,
-            hp: { A: 100, B: 100 },
-            turn: 'A',
-            timer: null
-          };
-          armTurnTimer(roomId);
-
-          const readyMsg = { type: 'ready', hp: { A: 100, B: 100 }, turn: 'A' };
-          send(p1, { ...readyMsg, playerId: 'A', opponentName: p2.pname, opponentSeed: p2.seed });
-          send(p2, { ...readyMsg, playerId: 'B', opponentName: p1.pname, opponentSeed: p1.seed });
-          console.log('Match started:', roomId);
+          // ищем соперника с ближайшим уровнем
+          const me = queue.shift();
+          let bi = 0, bd = 1e9;
+          queue.forEach((q, i) => { const d = Math.abs(q.prof.lvl - me.prof.lvl); if (d < bd) { bd = d; bi = i; } });
+          const other = queue.splice(bi, 1)[0];
+          clearTimeout(me.ghostTimer); clearTimeout(other.ghostTimer);
+          startRoom(me, other);
+        } else {
+          ws.ghostTimer = setTimeout(() => {
+            if (!queue.includes(ws)) return;
+            removeFromQueue(ws);
+            const gl = Math.max(1, ws.prof.lvl + Math.round((Math.random() - 0.4) * 3));
+            startRoom(ws, null, { name: '👻 ' + GHOST_NAMES[Math.floor(Math.random() * GHOST_NAMES.length)], seed: Math.floor(Math.random() * 2e9), prof: ghostProf(gl) });
+          }, GHOST_WAIT_MS);
         }
         break;
       }
-
       case 'cancel_search': {
         removeFromQueue(ws);
         send(ws, { type: 'search_cancelled' });
         break;
       }
-
       case 'hit': {
-        // Find which room this player is in
-        let foundRoom = null;
-        let foundRoomId = null;
-        for (const rid in rooms) {
-          const r = rooms[rid];
-          if (r.A === ws || r.B === ws) {
-            foundRoom = r;
-            foundRoomId = rid;
-            break;
-          }
-        }
-        if (!foundRoom) {
-          send(ws, { type: 'error', text: 'You are not in a match' });
-          return;
-        }
-
-        const playerId = getPlayerId(foundRoom, ws);
-        if (!playerId) return;
-
-        // Check turn
-        if (foundRoom.turn !== playerId) {
-          send(ws, { type: 'error', text: 'Not your turn' });
-          return;
-        }
-
-        // Антиспам: часы клиента не используем, у телефонов они часто врут
+        const [rid, room] = roomOf(ws);
+        if (!room) { send(ws, { type: 'error', text: 'You are not in a match' }); return; }
+        const pid = room.A === ws ? 'A' : 'B';
+        if (room.turn !== pid) { send(ws, { type: 'error', text: 'Not your turn' }); return; }
         const now = Date.now();
         if (now - ws.lastHit < MIN_HIT_GAP) return;
         ws.lastHit = now;
-
-        // Calculate damage server-side (ignore client values)
-        const { dmg, isCrit } = calcDamage();
-        const opponentId = getOpponentId(foundRoom, ws);
-        const oldHp = foundRoom.hp[opponentId];
-        foundRoom.hp[opponentId] = Math.max(0, oldHp - dmg);
-        const newHp = foundRoom.hp[opponentId];
-
-        // Switch turn
-        foundRoom.turn = opponentId;
-        armTurnTimer(foundRoomId);
-
-        // Notify both players
-        const updateA = {
-          type: 'update',
-          hp: { ...foundRoom.hp },
-          turn: foundRoom.turn,
-          dmg,
-          isCrit,
-          target: opponentId,
-          attacker: playerId
-        };
-        const updateB = { ...updateA };
-        send(foundRoom.A, updateA);
-        send(foundRoom.B, updateB);
-
-        // Check for KO
-        if (newHp <= 0) {
-          const winner = playerId;
-          const loser = opponentId;
-          send(foundRoom.A, { type: 'end', winner, playerId: 'A' });
-          send(foundRoom.B, { type: 'end', winner, playerId: 'B' });
-          console.log('Match ended:', foundRoomId, 'winner:', winner);
-          clearTimeout(foundRoom.timer);
-          delete rooms[foundRoomId];
-        }
+        doHit(rid, pid);
         break;
       }
-
       default:
         send(ws, { type: 'error', text: 'Unknown message type' });
     }
@@ -237,27 +191,15 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('Client disconnected');
-
-    // Remove from queue
     removeFromQueue(ws);
-
-    // Find and end any room this player was in
-    for (const rid in rooms) {
-      const r = rooms[rid];
-      if (r.A === ws || r.B === ws) {
-        const other = r.A === ws ? r.B : r.A;
-        if (other) {
-          send(other, { type: 'opponent_left' });
-        }
-        clearTimeout(r.timer);
-        delete rooms[rid];
-        console.log('Room ended (disconnect):', rid);
-        break;
-      }
+    const [rid, r] = roomOf(ws);
+    if (r) {
+      const other = r.A === ws ? r.B : r.A;
+      if (other) send(other, { type: 'opponent_left' });
+      clearTimeout(r.timer);
+      delete rooms[rid];
+      console.log('Room ended (disconnect):', rid);
     }
   });
-
   ws.on('error', () => {});
 });
-
-console.log('WebSocket server ready');
