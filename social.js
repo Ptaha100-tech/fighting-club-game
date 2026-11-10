@@ -7,7 +7,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const MAX_MEMBERS = 20;
 let db = { players: {}, clans: {}, nextClan: 1, lastWar: null };
 // Хранилище: Supabase (SUPABASE_URL + SUPABASE_KEY) -> иначе JSON-файл. Одна строка game_state(id=1,data jsonb).
-const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, ''), SB_KEY = process.env.SUPABASE_KEY || '';
+function normUrl(u) { u = String(u || '').trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { return new URL(u).origin; } catch (e) { return ''; } }
+const SB_URL = normUrl(process.env.SUPABASE_URL), SB_KEY = (process.env.SUPABASE_KEY || '').trim();
 const useSB = !!(SB_URL && SB_KEY);
 const sbHeaders = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 let dirty = false, loaded = false;
