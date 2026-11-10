@@ -7,7 +7,7 @@ const TURN_MS = 30000;     // время на ход, потом техниче�
 const MIN_HIT_GAP = 350;   // антиспам ударов, мс
 
 // Раздаём игру с этого же сервера: тогда адрес WebSocket определяется сам.
-const STATIC = { '/': 'index.html', '/index.html': 'index.html', '/fight-visual.js': 'fight-visual.js' };
+const STATIC = { '/': 'index.html', '/index.html': 'index.html', '/fight-visual.js': 'fight-visual.js', '/hero.js': 'hero.js' };
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
