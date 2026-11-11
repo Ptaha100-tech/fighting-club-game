@@ -56,6 +56,7 @@ function rollWeek() {
 }
 rollWeek(); setInterval(rollWeek, 60000);
 CL = require('./club')(() => db, () => { dirty = true; });
+setInterval(() => { try { CL.tick(); } catch (e) { console.error('tick', e.message); } }, 30000);
 PAY = require('./pay')(() => db, () => { dirty = true; });
 readyP.then(() => PAY.setup());
 ADM = require('./admin')(() => db, () => { dirty = true; }, m => { db.chat = db.chat || { global: [], clubs: {} }; m.id = Date.now() * 1000 + Math.floor(Math.random() * 1000); m.t = Date.now(); db.chat.global.push(m); if (db.chat.global.length > 80) db.chat.global.shift(); });

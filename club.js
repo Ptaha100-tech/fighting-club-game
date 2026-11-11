@@ -25,19 +25,25 @@ module.exports = function (getDb, touch) {
   ];
 
   // ---------- рейды ----------
-  const RAIDS = [
-    { id: 0, name: 'Гоп-стоп', rec: 5, min: 1, cc: 25, xp: 60, desc: 'Тёмный переулок, кошелёк или жизнь' },
-    { id: 1, name: 'Разборка на районе', rec: 15, min: 3, cc: 55, xp: 150, desc: 'Чужие пацаны на нашей земле' },
-    { id: 2, name: 'Бой без правил', rec: 30, min: 6, cc: 100, xp: 320, desc: 'Подвал, толпа, ставки' },
-    { id: 3, name: 'Тёмная арена', rec: 50, min: 10, cc: 170, xp: 650, desc: 'Босс подпольной лиги' }
+  const M = 60 * 1000;
+  const RAIDS = [   // dur — сколько идёт дело после сбора, need — сколько бойцов нужно, hard — сила босса
+    { id: 0, name: 'Гоп-стоп', rec: 5, min: 1, need: 3, dur: 5 * M, hard: 1.0, cc: 20, xp: 50, desc: 'Тёмный переулок, кошелёк или жизнь' },
+    { id: 1, name: 'Крыша для ларька', rec: 8, min: 1, need: 2, dur: 15 * M, hard: 1.0, cc: 30, xp: 80, desc: 'Выбить дань с торгашей на рынке' },
+    { id: 2, name: 'Разборка на районе', rec: 15, min: 3, need: 4, dur: 45 * M, hard: 1.1, cc: 60, xp: 170, desc: 'Чужие пацаны на нашей земле' },
+    { id: 3, name: 'Перехват фуры', rec: 22, min: 4, need: 4, dur: 90 * M, hard: 1.15, cc: 90, xp: 260, desc: 'Засада на трассе, охрана вооружена' },
+    { id: 4, name: 'Бой без правил', rec: 30, min: 6, need: 5, dur: 120 * M, hard: 1.2, cc: 120, xp: 360, desc: 'Подвал, толпа, ставки' },
+    { id: 5, name: 'Налёт на склад', rec: 40, min: 8, need: 5, dur: 240 * M, hard: 1.3, cc: 190, xp: 560, desc: 'Тяжёлая охрана и большой куш' },
+    { id: 6, name: 'Тёмная арена', rec: 50, min: 10, need: 5, dur: 360 * M, hard: 1.4, cc: 280, xp: 800, desc: 'Босс подпольной лиги' },
+    { id: 7, name: 'Охота на авторитета', rec: 65, min: 14, need: 6, dur: 480 * M, hard: 1.5, cc: 420, xp: 1200, desc: 'Сам вор в законе. Самое долгое и опасное дело' }
   ];
-  const COOLDOWN = 8 * 3600 * 1000, GATHER_MS = 2 * 3600 * 1000, RAID_NEED = 5;
-  const raidNeed = (c, members) => Math.max(2, Math.min(RAID_NEED, members));
+  const COOLDOWN = 10 * M, GATHER_MS = 2 * 3600 * 1000;
+  const raidNeed = (c, members, type) => Math.max(2, Math.min((RAIDS[type] || RAIDS[0]).need, members));
   function members(c) { return Object.values(getDb().players).filter(p => p.clan === c.id); }
   function raidView(c) {
     const r = c.raid || { st: 'idle' };
     const now = Date.now();
     if (r.st === 'gather' && now > r.until) { c.raid = { st: 'idle', last: r.last }; touch(); return c.raid; }
+    if (r.st === 'run' && now >= r.until) { resolveRaid(c); return c.raid; }
     return r;
   }
   const rnd = () => Math.random();
@@ -45,8 +51,8 @@ module.exports = function (getDb, touch) {
     const db = getDb(), P = ids.map(id => db.players[id]).filter(Boolean);
     const rec = rd.rec, N = P.length;
     const dpr = (15 + 0.8 * rec) * 1.12, expHp = 100 + 16 * (rec - 1);
-    let bossHp = Math.round(N * dpr * 11), bossMax = bossHp;
-    const bossDmg = expHp * 0.12;
+    let bossHp = Math.round(N * dpr * 11 * (rd.hard || 1)), bossMax = bossHp;
+    const bossDmg = expHp * 0.12 * (rd.hard || 1);
     const team = P.map(p => { const f = p.prof || { lvl: 1, hp: 100, dmg: 0, crit: .15, dodge: 0, armor: 0 }; return { id: p.id, name: p.name, f, hp: f.hp, max: f.hp, dealt: 0 }; });
     const log = [];
     for (let round = 1; round <= 30 && bossHp > 0 && team.some(t => t.hp > 0); round++) {
@@ -70,7 +76,7 @@ module.exports = function (getDb, touch) {
     return { win, rounds: log.length, log: log.slice(-8), team: team.map(t => ({ name: t.name, dealt: t.dealt, alive: t.hp > 0 })).sort((a, b) => b.dealt - a.dealt), t: Date.now(), raid: rd.id };
   }
   function resolveRaid(c) {
-    const r = c.raid, rd = RAIDS[r.type], ids = r.ready.filter(id => getDb().players[id] && getDb().players[id].clan === c.id);
+    const r = c.raid, rd = RAIDS[r.type], ids = (r.team || r.ready).filter(id => getDb().players[id] && getDb().players[id].clan === c.id);
     const res = simulateRaid(c, rd, ids);
     const till = 1 + (bonus(c).coin) / 100;
     for (const id of ids) {
@@ -79,21 +85,28 @@ module.exports = function (getDb, touch) {
     }
     c.xp = (c.xp || 0) + (res.win ? rd.xp : Math.round(rd.xp * 0.2)) + ids.length * 5;
     c.raid = { st: 'cooldown', until: Date.now() + COOLDOWN, last: res, type: r.type };
+    try { const R = getDb(); R.chat = R.chat || { global: [], clubs: {} }; (R.chat.clubs[c.id] = R.chat.clubs[c.id] || []).push({ id: Date.now() * 1000 + Math.floor(Math.random() * 1000), from: 'sys', name: '📣 Клуб', text: 'Дело «' + rd.name + '» завершено: ' + (res.win ? 'ПОБЕДА! +' + Math.round(rd.cc * till) + ' монет клуба каждому' : 'провал, босс оказался сильнее') + '. Подробности во вкладке «Дела».', t: Date.now() }); } catch (e) {}
     c.raidStats = c.raidStats || { win: 0, lose: 0 }; res.win ? c.raidStats.win++ : c.raidStats.lose++;
     touch(); return res;
   }
+
+  function startRun(c) {
+    const r = c.raid, rd = RAIDS[r.type];
+    c.raid = { st: 'run', type: r.type, team: r.ready.slice(), until: Date.now() + rd.dur, last: r.last }; touch();
+  }
+  function tick() { const db = getDb(); for (const c of Object.values(db.clans)) if (c.raid && c.raid.st === 'run' && Date.now() >= c.raid.until) resolveRaid(c); }
 
   // ---------- публичный вид клуба для клиента ----------
   function extra(c, me) {
     const l = clubLvl(c.xp), r = raidView(c), now = Date.now();
     const mem = members(c);
-    const need = raidNeed(c, mem.length);
-    const raid = { st: r.st === 'cooldown' && now > r.until ? 'idle' : r.st, need, type: r.type, ready: r.ready || [], until: r.until || 0, last: r.last || null, stats: c.raidStats || { win: 0, lose: 0 } };
+    const need = raidNeed(c, mem.length, r.type || 0);
+    const raid = { st: r.st === 'cooldown' && now > r.until ? 'idle' : r.st, need, type: r.type, ready: r.ready || [], team: r.team || [], until: r.until || 0, now, last: r.last || null, stats: c.raidStats || { win: 0, lose: 0 } };
     if (raid.st === 'idle' && r.st === 'cooldown') { c.raid = { st: 'idle', last: r.last }; }
     return {
       xp: c.xp || 0, lvl: l, xpNext: xpNext(l), xpPrev: l > 1 ? xpNext(l - 1) : 0, bank: c.bank || 0, up: { gym: 0, spar: 0, guard: 0, till: 0, ...(c.up || {}) },
       upCost: Object.fromEntries(Object.keys(UP).map(k => [k, ((c.up || {})[k] || 0) >= UP_MAX ? 0 : upCost((c.up || {})[k] || 0)])),
-      bonus: bonus(c), cap: maxMembers(c), raid, raids: RAIDS.map(x => ({ ...x, open: l >= x.min })), me: me ? { cc: me.cc || 0, owner: c.owner === me.id, dep: (c.deps || []).includes(me.id) } : null,
+      bonus: bonus(c), cap: maxMembers(c), raid, raids: RAIDS.map(x => ({ ...x, open: l >= x.min, needN: raidNeed(c, mem.length, x.id) })), me: me ? { cc: me.cc || 0, owner: c.owner === me.id, dep: (c.deps || []).includes(me.id) } : null,
       shop: SHOP.map(s => ({ ...s, name: s.name.replace('{club}', c.name.slice(0, 10)), open: l >= s.min, owned: !!(me && me.cinv && me.cinv[s.id] === c.id) }))
     };
   }
@@ -150,6 +163,7 @@ module.exports = function (getDb, touch) {
         const rd = RAIDS[num(body.type, 0, RAIDS.length - 1)], r = raidView(c);
         if (clubLvl(c.xp) < rd.min) return { error: 'Нужен уровень клуба ' + rd.min };
         if (r.st === 'gather') return { error: 'Сбор уже идёт' };
+        if (r.st === 'run') return { error: 'Клуб уже на деле' };
         if (r.st === 'cooldown' && Date.now() < r.until) return { error: 'Клуб отдыхает после прошлого дела' };
         c.raid = { st: 'gather', type: rd.id, ready: [me.id], until: Date.now() + GATHER_MS, last: r.last }; touch(); return { board: true };
       }
@@ -157,15 +171,15 @@ module.exports = function (getDb, touch) {
         if (!c) return { error: 'Ты не в клубе' };
         const r = raidView(c); if (r.st !== 'gather') return { error: 'Сбор не объявлен' };
         const i = r.ready.indexOf(me.id); if (i >= 0) r.ready.splice(i, 1); else r.ready.push(me.id);
-        const need = raidNeed(c, members(c).length);
-        if (r.ready.length >= need) { const res = resolveRaid(c); return { board: true, result: res }; }
+        const need = raidNeed(c, members(c).length, r.type);
+        if (r.ready.length >= need) { startRun(c); return { board: true }; }
         touch(); return { board: true };
       }
       case 'raid/start': {   // глава может начать раньше, если собрались хотя бы двое
         if (!c || (c.owner !== me.id && !(c.deps || []).includes(me.id))) return { error: 'Только глава или зам' };
         const r = raidView(c); if (r.st !== 'gather') return { error: 'Сбор не объявлен' };
         if (r.ready.length < 2) return { error: 'Нужно минимум двое готовых' };
-        return { board: true, result: resolveRaid(c) };
+        startRun(c); return { board: true };
       }
       case 'club/kick': {
         if (!c) return { error: 'Ты не в клубе' };
@@ -243,5 +257,5 @@ module.exports = function (getDb, touch) {
     }
     return null;
   }
-  return { route, extra, clubLvl, bonus, maxMembers, friendsView, SHOP, RAIDS };
+  return { tick, route, extra, clubLvl, bonus, maxMembers, friendsView, SHOP, RAIDS };
 };
