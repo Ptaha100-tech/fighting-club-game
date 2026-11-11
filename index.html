@@ -165,6 +165,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .tabs.sub button{font-size:12px}
 .mm-pay{border:1.5px solid #6a5226;background:#241a0c;color:#ffd24a;border-radius:10px;font-family:inherit;font-weight:800;font-size:12px;padding:2px 8px;cursor:pointer;margin-left:6px}
 .mm-pay *{pointer-events:none}
+.admg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.admg label{font-size:11px;color:#bba;display:flex;flex-direction:column;gap:2px}.admg input{background:#15110b;border:1.5px solid #3a2c18;border-radius:8px;color:#fff;padding:6px;font-family:inherit}
 .mm-cam{position:absolute;right:1px;bottom:1px;font-size:12px;background:rgba(0,0,0,.65);border-radius:6px;padding:0 3px}
 .mm-info{flex:1;min-width:0}.mm-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .mm-name{font-weight:800;font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -318,7 +319,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <div class="mm-lvrow"><span class="mm-lv" id="mmLv">1</span><div class="mm-xp"><i id="mmXpBar"></i><b id="mmXpTxt">0 / 100</b></div></div>
     </div>
   </div>
-  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span><button id="btnPay" class="mm-pay">💎 <b id="mmGems">0</b> +</button></div>
+  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span><button id="btnAdm" class="mm-pay" style="display:none">🛠</button><button id="btnPay" class="mm-pay">💎 <b id="mmGems">0</b> +</button></div>
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
@@ -371,6 +372,11 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="otitle">💎 ДОНАТ</div>
   <div class="tabs"><button data-pt="gems" class="on">Купить</button><button data-pt="use">Ускорить</button><button data-pt="cos">Вид</button></div>
   <div id="payList"></div>
+</div>
+<div class="overlay" id="admOverlay" style="background:#0a0805">
+  <button class="back-btn" id="admBack">← НАЗАД</button>
+  <div class="otitle">🛠 АДМИНКА</div>
+  <div id="admList"></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -1162,7 +1168,7 @@ async function restoreFromServer(){
 async function syncNow(force){
   if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
   const d=Math.min(60,SV.war||0);
-  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;syncClubGear();if(!PAYCAT)payLoad();else syncPremGear();saveSv();netErr=false;}
+  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;if(!window._admChecked){window._admChecked=1;admInit()}claimMail();syncClubGear();if(!PAYCAT)payLoad();else syncPremGear();saveSv();netErr=false;}
   catch(e){netErr=true;}
   if($('socOverlay').classList.contains('show'))renderSoc();
 }
@@ -1372,6 +1378,46 @@ document.addEventListener('click',e=>{const t=e.target,id=t.id;
   if(id==='btnPay'){mo.classList.remove('show');$('payOverlay').classList.add('show');renderPay();payLoad().then(renderPay)}
   else if(id==='payBack'){$('payOverlay').classList.remove('show');mo.classList.add('show');refreshMenu()}
   else if(t.dataset&&t.dataset.pt){payTab=t.dataset.pt;renderPay()}
+});
+
+
+// ── ПОЧТА (выдачи от админа) и АДМИН-ПАНЕЛЬ ──
+let ISADM=false,admSel=null;
+async function claimMail(){
+  const m=NET&&NET.me&&NET.me.mail;if(!m||!(m.money||m.xp||m.sp))return;
+  try{const j=await api('mail/claim');const x=j.mail;if(!x)return;NET.me.mail=null;
+    if(x.money)SV.money+=x.money;if(x.sp)SV.sp=(SV.sp||0)+x.sp;if(x.xp)addXp(x.xp);saveSv();refreshMenu();
+    sl('\u{1F381} Подарок: '+[x.money?'\u{1F4B0}'+x.money:'',x.xp?'⭐'+x.xp:'',x.sp?'\u{1F9EC}'+x.sp:''].filter(Boolean).join(' '));}catch(e){}
+}
+async function admInit(){try{const j=await api('ping');ISADM=!!j.adm;$('btnAdm').style.display=ISADM?'inline-block':'none'}catch(e){}}
+async function admCall(r,b){try{return await api('admin/'+r,b)}catch(e){sl('⚠ '+e.message);return null}}
+async function renderAdm(){
+  const L=$('admList');L.innerHTML='<div class="hint">Загрузка…</div>';
+  const st=await admCall('stats');if(!st)return;
+  L.innerHTML='<div class="warbox">\u{1F465} Игроков: '+st.players+' • онлайн: '+st.online+' • за сутки: '+st.day+'<br>\u{1F6E1} Клубов: '+st.clans+' • VIP: '+st.vip+' • банов: '+st.banned+'<br>⭐ Продано: '+st.payments+' платежей, '+st.stars+' Stars (сегодня '+st.starsDay+')</div>'
+   +'<div class="inp"><input id="admQ" placeholder="Имя или ID"><button class="sbtn" id="admFind">Найти</button></div><div class="inp"><input id="admSay" maxlength="200" placeholder="Объявление в общий чат"><button class="sbtn" id="admSayGo">\u{1F4E2}</button></div><div id="admRes"></div>';
+  $('admFind').onclick=admFind;$('admSayGo').onclick=async()=>{if(await admCall('say',{text:$('admSay').value})){$('admSay').value='';sl('Отправлено')}};
+  admFind();
+}
+async function admFind(){
+  const j=await admCall('find',{q:($('admQ')||{}).value||''});if(!j)return;const R=$('admRes');R.innerHTML='';
+  j.list.forEach(p=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span class="nm">'+esc(p.name)+(p.ban?' \u{1F6AB}':'')+(p.mute?' \u{1F507}':'')+'<small>'+p.id+' • ур.'+p.level+' • \u{1F48E}'+p.gems+' \u{1FA99}'+p.cc+(p.vip?' • VIP':'')+'</small></span>';
+    const b=document.createElement('button');b.textContent='⚙';b.onclick=()=>admOpen(p);d.appendChild(b);R.appendChild(d)});
+}
+function admOpen(p){
+  admSel=p;const R=$('admRes');
+  R.innerHTML='<div class="warbox">'+esc(p.name)+'<b>'+p.id+'</b>ур.'+p.level+' • \u{1F48E}'+p.gems+' • \u{1FA99}'+p.cc+(p.ban?' • ЗАБАНЕН':'')+'</div>'
+   +'<div class="admg">'+[['gems','\u{1F48E} Кристаллы'],['cc','\u{1FA99} Клубные монеты'],['money','\u{1F4B0} Монеты'],['xp','⭐ Опыт'],['sp','\u{1F9EC} Очки навыков'],['vipDays','\u{1F451} Дней VIP']].map(a=>'<label>'+a[1]+'<input type="number" id="ag_'+a[0]+'" placeholder="0"></label>').join('')+'</div>'
+   +'<button class="sbtn" id="agGo" style="width:100%;padding:10px">Выдать</button>'
+   +'<div class="inp" style="margin-top:8px"><button class="sbtn" id="agBan" style="flex:1">'+(p.ban?'Разбанить':'\u{1F6AB} Забанить')+'</button><button class="sbtn" id="agMute" style="flex:1">'+(p.mute?'Снять мут':'\u{1F507} Мут 60 мин')+'</button></div><button class="sbtn" id="agBack" style="width:100%">← К списку</button>';
+  $('agGo').onclick=async()=>{const b={id:p.id};['gems','cc','money','xp','sp','vipDays'].forEach(k=>b[k]=+$('ag_'+k).value||0);const j=await admCall('grant',b);if(j){sl('✓ Выдано');admOpen(j.p)}};
+  $('agBan').onclick=async()=>{const j=await admCall('ban',{id:p.id,on:!p.ban});if(j)admOpen(j.p)};
+  $('agMute').onclick=async()=>{const j=await admCall('mute',{id:p.id,min:p.mute?0:60});if(j)admOpen(j.p)};
+  $('agBack').onclick=admFind;
+}
+document.addEventListener('click',e=>{const t=e.target,id=t.id;
+  if(id==='btnAdm'){mo.classList.remove('show');$('admOverlay').classList.add('show');renderAdm()}
+  else if(id==='admBack'){$('admOverlay').classList.remove('show');mo.classList.add('show')}
 });
 
 // ── MAIN MENU ──

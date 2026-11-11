@@ -191,6 +191,7 @@ module.exports = function (getDb, touch) {
       }
       case 'chat/send': {
         const text = clean(body.text, 200); if (!text) return { error: 'Пусто' };
+        if ((me.mute || 0) > Date.now()) return { error: 'Тебе запрещено писать в чат' };
         if (spam(me)) return { error: 'Не так быстро' };
         const R = rings(), m = { id: ++msgId, from: me.id, name: me.name, lvl: me.level, text, t: Date.now() };
         if (body.room === 'club') { if (!c) return { error: 'Ты не в клубе' }; push(R.chat.clubs[c.id] = R.chat.clubs[c.id] || [], m); }
@@ -205,7 +206,8 @@ module.exports = function (getDb, touch) {
       case 'dm/send': {
         const t = db.players[body.to]; if (!t) return { error: 'Игрок не найден' };
         if (!(me.friends || []).includes(t.id)) return { error: 'Писать можно только друзьям' };
-        const text = clean(body.text, 300); if (!text) return { error: 'Пусто' }; if (spam(me)) return { error: 'Не так быстро' };
+        const text = clean(body.text, 300); if (!text) return { error: 'Пусто' };
+        if ((me.mute || 0) > Date.now()) return { error: 'Тебе запрещено писать в чат' }; if (spam(me)) return { error: 'Не так быстро' };
         const R = rings(), k = key(me.id, t.id), m = { id: ++msgId, from: me.id, name: me.name, text, t: Date.now() };
         push(R.dms[k] = R.dms[k] || [], m); t.unread = t.unread || {}; t.unread[me.id] = (t.unread[me.id] || 0) + 1; touch(); return { data: { ok: true } };
       }
