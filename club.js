@@ -93,7 +93,7 @@ module.exports = function (getDb, touch) {
     return {
       xp: c.xp || 0, lvl: l, xpNext: xpNext(l), xpPrev: l > 1 ? xpNext(l - 1) : 0, bank: c.bank || 0, up: { gym: 0, spar: 0, guard: 0, till: 0, ...(c.up || {}) },
       upCost: Object.fromEntries(Object.keys(UP).map(k => [k, ((c.up || {})[k] || 0) >= UP_MAX ? 0 : upCost((c.up || {})[k] || 0)])),
-      bonus: bonus(c), cap: maxMembers(c), raid, raids: RAIDS.map(x => ({ ...x, open: l >= x.min })), me: me ? { cc: me.cc || 0, owner: c.owner === me.id } : null,
+      bonus: bonus(c), cap: maxMembers(c), raid, raids: RAIDS.map(x => ({ ...x, open: l >= x.min })), me: me ? { cc: me.cc || 0, owner: c.owner === me.id, dep: (c.deps || []).includes(me.id) } : null,
       shop: SHOP.map(s => ({ ...s, name: s.name.replace('{club}', c.name.slice(0, 10)), open: l >= s.min, owned: !!(me && me.cinv && me.cinv[s.id] === c.id) }))
     };
   }
@@ -162,10 +162,33 @@ module.exports = function (getDb, touch) {
         touch(); return { board: true };
       }
       case 'raid/start': {   // глава может начать раньше, если собрались хотя бы двое
-        if (!c || c.owner !== me.id) return { error: 'Только глава клуба' };
+        if (!c || (c.owner !== me.id && !(c.deps || []).includes(me.id))) return { error: 'Только глава или зам' };
         const r = raidView(c); if (r.st !== 'gather') return { error: 'Сбор не объявлен' };
         if (r.ready.length < 2) return { error: 'Нужно минимум двое готовых' };
         return { board: true, result: resolveRaid(c) };
+      }
+      case 'club/kick': {
+        if (!c) return { error: 'Ты не в клубе' };
+        const t = getDb().players[body.id]; if (!t || t.clan !== c.id) return { error: 'Такого бойца нет в клубе' };
+        c.deps = c.deps || []; const isOwner = c.owner === me.id, isDep = c.deps.includes(me.id);
+        if (t.id === me.id) return { error: 'Себя выгнать нельзя' };
+        if (t.id === c.owner) return { error: 'Главу выгнать нельзя' };
+        if (!isOwner && !(isDep && !c.deps.includes(t.id))) return { error: 'Нет прав' };
+        t.clan = 0; t.wpts = 0; c.deps = c.deps.filter(x => x !== t.id); if (c.raid && c.raid.ready) c.raid.ready = c.raid.ready.filter(x => x !== t.id);
+        touch(); return { board: true };
+      }
+      case 'club/deputy': {
+        if (!c || c.owner !== me.id) return { error: 'Только глава клуба' };
+        const t = getDb().players[body.id]; if (!t || t.clan !== c.id || t.id === me.id) return { error: 'Нельзя' };
+        c.deps = c.deps || []; const has = c.deps.includes(t.id);
+        if (body.on && !has) { if (c.deps.length >= 3) return { error: 'Замов может быть не больше 3' }; c.deps.push(t.id); }
+        if (!body.on) c.deps = c.deps.filter(x => x !== t.id);
+        touch(); return { board: true };
+      }
+      case 'club/owner': {
+        if (!c || c.owner !== me.id) return { error: 'Только глава клуба' };
+        const t = getDb().players[body.id]; if (!t || t.clan !== c.id || t.id === me.id) return { error: 'Нельзя' };
+        c.owner = t.id; c.deps = (c.deps || []).filter(x => x !== t.id); c.deps.push(me.id); touch(); return { board: true };
       }
       case 'friend/list': return { data: friendsView(me) };
       case 'friend/add': {
