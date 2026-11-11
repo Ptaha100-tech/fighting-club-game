@@ -560,14 +560,17 @@ function limb(g,ax,ay,bx,by,w,col,sleeve){
 }
 function fist(g,x,y,F,scale){
   g.save();g.translate(x,y);g.scale(scale,scale);
-  g.fillStyle='#120807';g.beginPath();g.ellipse(0,0,37,33,0,0,7);g.fill();
-  const q=g.createLinearGradient(-30,-30,30,30);q.addColorStop(0,'#e0d4b4');q.addColorStop(1,'#a99a74');
-  g.fillStyle=q;g.beginPath();g.ellipse(0,0,33,29,0,0,7);g.fill();
-  g.strokeStyle='rgba(60,45,25,.45)';g.lineWidth=2;
-  for(let i=-3;i<=3;i++){g.beginPath();g.moveTo(i*8-8,-26+Math.abs(i));g.lineTo(i*8+8,26-Math.abs(i));g.stroke()}
+  const gv=F.f.glove||'wraps',GC={box:['#e04a3a','#8a1410'],gold:['#ffe27a','#b9801a'],mma:['#3a3a42','#121216'],bare:[shade(F.f.skin,6),shade(F.f.skin,-14)],wraps:['#e0d4b4','#a99a74']}[gv]||['#e0d4b4','#a99a74'];
+  g.fillStyle='#120807';g.beginPath();g.ellipse(0,0,gv==='box'||gv==='gold'?41:37,gv==='box'||gv==='gold'?37:33,0,0,7);g.fill();
+  const q=g.createLinearGradient(-30,-30,30,30);q.addColorStop(0,GC[0]);q.addColorStop(1,GC[1]);
+  g.fillStyle=q;g.beginPath();g.ellipse(0,0,gv==='box'||gv==='gold'?37:33,gv==='box'||gv==='gold'?33:29,0,0,7);g.fill();
+  if(gv==='wraps'){g.strokeStyle='rgba(60,45,25,.45)';g.lineWidth=2;
+    for(let i=-3;i<=3;i++){g.beginPath();g.moveTo(i*8-8,-26+Math.abs(i));g.lineTo(i*8+8,26-Math.abs(i));g.stroke()}}
+  else if(gv==='mma'){g.strokeStyle='rgba(0,0,0,.7)';g.lineWidth=2.5;for(let i=-1;i<=2;i++){g.beginPath();g.moveTo(14,-17+i*13);g.lineTo(32,-17+i*13);g.stroke()}g.fillStyle=rgba(F.f.skin,.9);g.beginPath();g.ellipse(-10,0,12,22,0,0,7);g.fill()}
+  else if(gv==='box'||gv==='gold'){g.fillStyle='rgba(255,255,255,.55)';g.beginPath();g.ellipse(-24,0,8,24,0,0,7);g.fill();g.fillStyle='rgba(255,255,255,.25)';g.beginPath();g.ellipse(8,-12,16,9,-.4,0,7);g.fill()}
   g.fillStyle='rgba(255,255,255,.2)';
   for(let i=0;i<4;i++){g.beginPath();g.arc(14,-20+i*13,6,0,7);g.fill()}
-  g.fillStyle=rgba(F.f.skin,1);g.beginPath();g.ellipse(-26,2,10,16,0,0,7);g.fill();
+  if(gv==='wraps'||gv==='bare'){g.fillStyle=rgba(F.f.skin,1);g.beginPath();g.ellipse(-26,2,10,16,0,0,7);g.fill();}
   blob(g,0,4,28,22,[60,40,22],.28);
   blob(g,14,0,16,26,[120,10,10],.7*F.hands);
   g.restore();
@@ -586,7 +589,7 @@ function drawBody(g,F,nx,sy,bob){
   torso();g.fillStyle=shade(f.skin,-10);g.fill();
   const gl=g.createLinearGradient(nx-215,0,nx+215,0);
   if(f.tank){
-    g.fillStyle=f.shirt;g.beginPath();g.moveTo(nx-hw*.95,sy-26);
+    g.fillStyle=f.bare?'rgba(0,0,0,0)':f.shirt;g.beginPath();g.moveTo(nx-hw*.95,sy-26);
     g.bezierCurveTo(nx-hw*.5,sy+64,nx+hw*.5,sy+64,nx+hw*.95,sy-26);
     g.lineTo(nx+hw*1.3,sy-20);g.lineTo(nx+190,sy+60);g.lineTo(nx+215,BODY_B);g.lineTo(nx-215,BODY_B);g.lineTo(nx-190,sy+60);g.lineTo(nx-hw*1.3,sy-20);g.closePath();g.fill();
     g.strokeStyle='rgba(200,170,150,.18)';g.lineWidth=3;g.beginPath();g.moveTo(nx-hw*.5,sy+8);g.lineTo(nx-hw*.2,sy+14);g.moveTo(nx+hw*.5,sy+8);g.lineTo(nx+hw*.2,sy+14);g.stroke();
@@ -598,6 +601,7 @@ function drawBody(g,F,nx,sy,bob){
     g.fillStyle=shade(f.skin,-24);g.beginPath();g.ellipse(nx,sy-16,hw*.62,20,0,0,Math.PI);g.fill();
     g.strokeStyle='rgba(230,220,200,.5)';g.lineWidth=3;g.beginPath();g.moveTo(nx-16,sy+4);g.lineTo(nx-18,sy+60);g.moveTo(nx+16,sy+4);g.lineTo(nx+18,sy+56);g.stroke();
   }
+  if(f.clubText&&!f.bare){g.save();g.fillStyle='rgba(255,255,255,.92)';g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=4;g.font='900 46px system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';g.strokeText(f.clubText,nx,sy+120);g.fillText(f.clubText,nx,sy+120);g.restore()}
   // folds, stains, tears
   g.strokeStyle='rgba(0,0,0,.2)';g.lineWidth=3;
   for(let i=0;i<6;i++){const x=nx-170+i*68;g.beginPath();g.moveTo(x,sy+90);g.quadraticCurveTo(x+20,sy+200,x-10,sy+330);g.stroke()}
@@ -825,6 +829,7 @@ window.FightVisual={
   setMode:(m)=>{const g=m==='game';S.auto=!g&&S.auto;S.interactive=!g;if(g)enableLite()},
   setPaused,quality:()=>Q,
   kit:{makeFighter,drawHead,rng,blob,shade,rgba,yard,ring,mk},
+  setFighterObj:(side,f)=>{const F=side==='left'?L:R;F.f=f;F.bs=null;F.hs=null;S.parts.length=0},
   setFighters:(seedL,seedR,dmgL,dmgR)=>{
     L=mkState(seedL|0,215,1,clamp(+dmgL||0,0,1));R=mkState(seedR|0,505,-1,clamp(+dmgR||0,0,1));
     L.ko=L.dmg>=1;R.ko=R.dmg>=1;S.koT=0;S.parts.length=0;updateHud(true)},

@@ -13,19 +13,19 @@ const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;r
 const TIERS=[
  {name:'Бомж',min:1,build:.04,hunch:1,dirt:1,bruise:.36,sweat:.45,hair:'beanie',hat:'#4a4540',hairCol:'#8a8a86',beard:1,gray:true,gap:true,
   top:'coat',pants:'rags',shoes:'mismatch',hands:'bare',pose:'slump',prop:'bottle',bg:'yard',accent:'#9a7b4a'},
- {name:'Гопник',min:4,build:.22,hunch:.6,dirt:.4,bruise:.18,sweat:.2,hair:'cap',hat:'#1b1b20',hairCol:'#2a2118',beard:.4,gray:false,gap:true,
+ {name:'Гопник',min:5,build:.22,hunch:.6,dirt:.4,bruise:.18,sweat:.2,hair:'cap',hat:'#1b1b20',hairCol:'#2a2118',beard:.4,gray:false,gap:true,
   top:'track',pants:'track',shoes:'sneaker',hands:'bare',pose:'swagger',prop:'chain',bg:'yard',accent:'#3f74c4'},
- {name:'Уличный боец',min:8,build:.42,hunch:.35,dirt:.2,bruise:.14,sweat:.18,hair:'buzz',hairCol:'#2a2118',beard:.5,gray:false,gap:false,
+ {name:'Уличный боец',min:12,build:.42,hunch:.35,dirt:.2,bruise:.14,sweat:.18,hair:'buzz',hairCol:'#2a2118',beard:.5,gray:false,gap:false,
   top:'tank',pants:'jeans',shoes:'boots',hands:'wraps',pose:'swagger',prop:null,bg:'gym',accent:'#d06a2e'},
- {name:'Подпольный боксёр',min:13,build:.6,hunch:.2,dirt:.1,bruise:.2,sweat:.2,hair:'buzz',hairCol:'#1c1512',beard:.3,gray:false,gap:false,
+ {name:'Подпольный боксёр',min:22,build:.6,hunch:.2,dirt:.1,bruise:.2,sweat:.2,hair:'buzz',hairCol:'#1c1512',beard:.3,gray:false,gap:false,
   top:'bare',pants:'box',shoes:'boxboots',hands:'boxglove',pose:'ready',prop:'towel',bg:'ring',accent:'#c42a30'},
- {name:'Любитель ММА',min:19,build:.76,hunch:.1,dirt:0,bruise:.06,sweat:.12,hair:'buzz',hairCol:'#1c1512',beard:.22,gray:false,gap:false,
+ {name:'Любитель ММА',min:34,build:.76,hunch:.1,dirt:0,bruise:.06,sweat:.12,hair:'buzz',hairCol:'#1c1512',beard:.22,gray:false,gap:false,
   top:'bare',pants:'mma',shoes:'bare',hands:'mmaglove',pose:'ready',prop:null,bg:'cage',accent:'#2f86e0'},
- {name:'Профи ММА',min:26,build:.88,hunch:0,dirt:0,bruise:.03,sweat:.1,hair:'buzz',hairCol:'#1c1512',beard:.18,gray:false,gap:false,
+ {name:'Профи ММА',min:48,build:.88,hunch:0,dirt:0,bruise:.03,sweat:.1,hair:'buzz',hairCol:'#1c1512',beard:.18,gray:false,gap:false,
   top:'bare',pants:'mmapro',shoes:'bare',hands:'mmaglove',pose:'ready',prop:'tattoo',bg:'cage',accent:'#2fb585'},
- {name:'Претендент UFC',min:34,build:.95,hunch:0,dirt:0,bruise:0,sweat:.1,hair:'buzz',hairCol:'#141010',beard:.15,gray:false,gap:false,
+ {name:'Претендент UFC',min:64,build:.95,hunch:0,dirt:0,bruise:0,sweat:.1,hair:'buzz',hairCol:'#141010',beard:.15,gray:false,gap:false,
   top:'robe',pants:'mmagold',shoes:'bare',hands:'mmaglove',pose:'ready',prop:'tattoo',bg:'arena',accent:'#e0a030'},
- {name:'Чемпион UFC',min:45,build:1,hunch:0,dirt:0,bruise:0,sweat:.08,hair:'buzz',hairCol:'#141010',beard:.12,gray:false,gap:false,
+ {name:'Чемпион UFC',min:80,build:1,hunch:0,dirt:0,bruise:0,sweat:.08,hair:'buzz',hairCol:'#141010',beard:.12,gray:false,gap:false,
   top:'bare',pants:'mmagold',shoes:'bare',hands:'goldglove',pose:'ready',prop:'belt',bg:'arena',accent:'#ffd24a'}
 ];
 function tierOf(level){let t=0;TIERS.forEach((x,i)=>{if(level>=x.min)t=i});return t}
@@ -628,6 +628,14 @@ function renderTier(tier,seed,w,h,gear){
   const sp=newHead(f,D.hs,Math.max(.3,sc*1.4));paintHead(sp,f,T,.01,0);g.drawImage(sp.c,D.hx+sp.bx*sp.hs,D.hy+sp.by*sp.hs,sp.bw*sp.hs,sp.bh*sp.hs);g.restore();
   return c;
 }
-window.Hero={TIERS,tierOf,mount,setPlayer,start,stop,drawPortrait,renderTier,W,H,
+const TOPLOOK={coat:{shirt:'#4a4f3a'},track:{shirt:'#233b73'},tank:{shirt:'#d9d5c9',tank:1},bare:{shirt:'#000',tank:1,bare:1},robe:{shirt:'#7a1424'},club:{shirt:'#1f5a3a'}};
+const GLOVEMAP={bare:'bare',wraps:'wraps',boxglove:'box',mmaglove:'mma',mma:'mma',goldglove:'gold'};
+function fighterFor(level,seed,gear,clubText){
+  const tier=tierOf(level||1),f=heroFighter(seed|0||1,tier,gear),T=tierT(tier,gear),tl=TOPLOOK[T.top]||TOPLOOK.coat;
+  f.shirt=(gear&&gear.shirtCol)||tl.shirt;f.tank=!!tl.tank;f.bare=!!tl.bare;f.glove=GLOVEMAP[T.hands]||'wraps';
+  f.clubText=gear&&gear.club?clubText:'';
+  return f;
+}
+window.Hero={fighterFor,TIERS,tierOf,mount,setPlayer,start,stop,drawPortrait,renderTier,W,H,
   set onEvolve(fn){S.onEvolve=fn},get tier(){return S.tier},get running(){return S.running},get state(){return S}};
 })();
