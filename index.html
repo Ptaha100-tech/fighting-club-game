@@ -163,6 +163,8 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .msg.mine{margin:4px 0 4px 40px;background:#2a2410}
 .cbar{height:8px;background:#000;border-radius:4px;margin:6px 0;overflow:hidden}.cbar i{display:block;height:100%;background:linear-gradient(90deg,#b8801f,#ffd24a)}
 .tabs.sub button{font-size:12px}
+.mm-pay{border:1.5px solid #6a5226;background:#241a0c;color:#ffd24a;border-radius:10px;font-family:inherit;font-weight:800;font-size:12px;padding:2px 8px;cursor:pointer;margin-left:6px}
+.mm-pay *{pointer-events:none}
 .mm-cam{position:absolute;right:1px;bottom:1px;font-size:12px;background:rgba(0,0,0,.65);border-radius:6px;padding:0 3px}
 .mm-info{flex:1;min-width:0}.mm-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .mm-name{font-weight:800;font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -316,7 +318,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <div class="mm-lvrow"><span class="mm-lv" id="mmLv">1</span><div class="mm-xp"><i id="mmXpBar"></i><b id="mmXpTxt">0 / 100</b></div></div>
     </div>
   </div>
-  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span></div>
+  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span><button id="btnPay" class="mm-pay">🦷 <b id="mmGems">0</b> +</button></div>
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
@@ -363,6 +365,12 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div id="chatBox"></div>
   <div id="chatFr" style="display:none"></div>
   <div class="inp" id="chatSend"><input id="chatIn" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button class="sbtn" id="chatGo">➤</button></div>
+</div>
+<div class="overlay" id="payOverlay" style="background:#0a0805">
+  <button class="back-btn" id="payBack">← НАЗАД</button>
+  <div class="otitle">🦷 ДОНАТ</div>
+  <div class="tabs"><button data-pt="gems" class="on">Купить</button><button data-pt="use">Ускорить</button><button data-pt="cos">Вид</button></div>
+  <div id="payList"></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -529,7 +537,7 @@ function renderGear(){
   const bar=document.createElement('div');bar.className='slotbar';
   SLOTS.forEach(sl=>{const b=document.createElement('button');b.className=gearSlot===sl[0]?'on':'';const e=GEARBY[SV.eq[sl[0]]];b.innerHTML=sl[1].split(' ')[0]+'<small>'+(e&&SV.inv[e.id]?'✓':'')+'</small>';b.onclick=()=>{gearSlot=sl[0];renderGear()};bar.appendChild(b)});
   list.appendChild(bar);
-  GEAR.concat(CLUBGEAR).filter(g=>g.slot===gearSlot).forEach(g=>{
+  GEAR.concat(CLUBGEAR,PREMGEAR).filter(g=>g.slot===gearSlot).forEach(g=>{
     const own=!!SV.inv[g.id],worn=SV.eq[g.slot]===g.id&&own,locked=SV.level<g.lvl;
     const d=document.createElement('div');d.className='gitem'+(worn?' worn':'')+(locked&&!own?' lock':'');d.style.borderColor=RAR[g.r][1];
     d.innerHTML='<div class="gic">'+g.icon+'</div><div class="gtx"><b>'+g.name+'</b><small style="color:'+RAR[g.r][1]+'">'+RAR[g.r][0]+'</small><div>'+stChips(g.st)+'</div></div>';
@@ -696,7 +704,7 @@ function eturn(){
   },300);
 }
 function addXp(amt){
-  SV.xp+=amt;
+  amt=Math.round(amt*xpK());SV.xp+=amt;
   while(SV.xp>=getLevelXp(SV.level)){SV.xp-=getLevelXp(SV.level);SV.level++;SV.sp=(SV.sp||0)+2;sl('\u2191 \u0423\u0440\u043e\u0432\u0435\u043d\u044c '+SV.level+'! +2 \u043e\u0447\u043a\u0430 \u043d\u0430\u0432\u044b\u043a\u043e\u0432');}
 }
 function endCombat(win){
@@ -704,7 +712,7 @@ function endCombat(win){
   const o=oppAt(S.selectedOpp),first=S.selectedOpp>=SV.career;
   if(win){
     const df=cl(1+(o.level-SV.level)*.1,.4,1.4),rep=first?1:.6,rw=Math.round(o.reward*df*rep*(1+(SV.level/150))),rxp=Math.round(o.xp*df*rep);
-    SV.wins++;SV.money+=rw;addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');SV.war=(SV.war||0)+(S.selectedOpp%5===4&&S.selectedOpp>=4?3:1);if(first)SV.career=S.selectedOpp+1;
+    SV.wins++;SV.money+=Math.round(rw*coinK());addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');SV.war=(SV.war||0)+(S.selectedOpp%5===4&&S.selectedOpp>=4?3:1);if(first)SV.career=S.selectedOpp+1;
     if(E.health<=0){SV.totalKos++;}
     addXp(rxp);
     wt.textContent='\u{1F525} \u041f\u041e\u0411\u0415\u0414\u0410!';
@@ -1154,7 +1162,7 @@ async function restoreFromServer(){
 async function syncNow(force){
   if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
   const d=Math.min(60,SV.war||0);
-  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;syncClubGear();saveSv();netErr=false;}
+  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;syncClubGear();if(!PAYCAT)payLoad();else syncPremGear();saveSv();netErr=false;}
   catch(e){netErr=true;}
   if($('socOverlay').classList.contains('show'))renderSoc();
 }
@@ -1315,6 +1323,57 @@ document.addEventListener('click',e=>{const t=e.target,id=t.id;
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='chatIn')chSend()});
 
+
+// ── ДОНАТ: кристаллы, VIP, косметика ──
+let PAYCAT=null,payTab='gems';
+function wl(){return(NET&&NET.me&&NET.me.w)||{gems:0,vip:0,boost:0,pinv:{},starter:false,pay:false}}
+function vipOn(){return wl().vip>Date.now()}
+function xpK(){return(vipOn()?1.2:1)*(wl().boost>Date.now()?2:1)}
+function coinK(){return vipOn()?1.2:1}
+let PREMGEAR=[];
+function syncPremGear(){
+  const own=[];
+  if(PAYCAT&&NET&&NET.me)PAYCAT.items.concat(PAYCAT.hidden||[]).forEach(it=>{if(!wl().pinv[it.id])return;
+    const g={slot:it.slot,id:it.id,name:it.name,icon:it.icon,r:'l',lvl:1,price:0,st:it.st,vis:it.vis};GEARBY[it.id]=g;SV.inv[it.id]=true;own.push(g)});
+  PREMGEAR=own;
+}
+async function payLoad(){try{const j=await api('pay/info');PAYCAT=j;PAYCAT.hidden=[{id:'pc_cap',slot:'head',name:'Кепка «Новичок»',icon:'\u{1F9E2}',st:{crit:2},vis:{hair:'cap',hat:'#2d7a3a'}}];if(NET&&NET.me)NET.me.w=j.wallet;syncPremGear();}catch(e){}}
+function payWait(n){ // вебхук зачисляет с задержкой
+  let k=0;const t=setInterval(async()=>{k++;const g=wl().gems,v=wl().vip;await payLoad();if(wl().gems!==g||wl().vip!==v||k>8){clearInterval(t);refreshMenu();if($('payOverlay').classList.contains('show'))renderPay()}},2000);
+}
+async function buyStars(sku){
+  const T=window.Telegram&&Telegram.WebApp;
+  try{const j=await api('pay/invoice',{sku});
+    if(T&&T.openInvoice)T.openInvoice(j.link,st=>{if(st==='paid'){sl('✅ Оплата прошла, зачисляем…');payWait()}else if(st==='failed')sl('⚠ Оплата не прошла')});
+    else sl('Оплата работает только внутри Telegram');
+  }catch(e){sl('⚠ '+e.message)}
+}
+async function gemAct(route,body,ok){try{const j=await api(route,body);if(NET&&NET.me)NET.me.w=j.wallet;syncPremGear();if(j.energy){const e=enTick();e.v=Math.max(e.v,EN_MAX);e.t=Date.now();saveSv()}sl(ok||'✓');refreshMenu();renderPay()}catch(e){sl('⚠ '+e.message)}}
+function renderPay(){
+  const L=$('payList');L.innerHTML='';const w=wl();
+  document.querySelectorAll('[data-pt]').forEach(b=>b.classList.toggle('on',b.dataset.pt===payTab));
+  if(!PAYCAT){L.innerHTML='<div class="hint">Загрузка…</div>';return}
+  L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F9B7} '+w.gems+' кристаллов'+(vipOn()?'<b>\u{1F451} VIP до '+new Date(w.vip).toLocaleDateString()+'</b>':'')+(w.boost>Date.now()?'<br>⚡ Буст опыта ×2 до '+new Date(w.boost).toLocaleTimeString().slice(0,5):'')+'<br><small>Платное не делает сильнее в бою: только ускорение и внешний вид</small></div>');
+  const row=(ic,nm,sub,btn,fn,dis)=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span class="pl">'+ic+'</span><span class="nm">'+nm+'<small>'+sub+'</small></span>';const b=document.createElement('button');b.textContent=btn;b.disabled=!!dis;b.onclick=fn;d.appendChild(b);L.appendChild(d)};
+  if(payTab==='gems'){
+    if(!w.starter)row('\u{1F381}','Стартовый набор','100 \u{1F9B7} + кепка + 3 дня VIP • один раз','⭐ '+PAYCAT.sku.starter.stars,()=>buyStars('starter'));
+    ['g1','g2','g3','g4'].forEach(k=>{const s=PAYCAT.sku[k];row('\u{1F9B7}',s.title,s.desc.replace(/^.*?\(/,'(').replace(/^\(|\)$/g,'')||'','⭐ '+s.stars,()=>buyStars(k))});
+    row('\u{1F451}','VIP 30 дней',PAYCAT.sku.vip.desc,'⭐ '+PAYCAT.sku.vip.stars,()=>buyStars('vip'));
+    if(!w.pay)L.insertAdjacentHTML('beforeend','<div class="hint">Оплата Stars пока не подключена на сервере.</div>');
+  }else if(payTab==='use'){
+    row('⚡','Полная энергия','Восстановить до максимума',PAYCAT.energyCost+' \u{1F9B7}',()=>gemAct('gem/energy',{},'⚡ Энергия полная'),w.gems<PAYCAT.energyCost);
+    row('\u{1F4DA}','Буст опыта ×2 на 24 часа','Складывается с VIP',PAYCAT.boostCost+' \u{1F9B7}',()=>gemAct('gem/boost',{},'\u{1F4DA} Буст включён'),w.gems<PAYCAT.boostCost);
+  }else{
+    L.insertAdjacentHTML('beforeend','<div class="hint">Купленное надевай в «Магазин → Вещи». Статы как у обычных вещей, главное — внешний вид.</div>');
+    PAYCAT.items.forEach(it=>{const own=!!w.pinv[it.id];row(it.icon,it.name,stChips2(it.st),own?'Куплено':it.price+' \u{1F9B7}',()=>gemAct('gem/item',{id:it.id},'✓ '+it.name),own||w.gems<it.price)});
+  }
+}
+document.addEventListener('click',e=>{const t=e.target,id=t.id;
+  if(id==='btnPay'){mo.classList.remove('show');$('payOverlay').classList.add('show');renderPay();payLoad().then(renderPay)}
+  else if(id==='payBack'){$('payOverlay').classList.remove('show');mo.classList.add('show');refreshMenu()}
+  else if(t.dataset&&t.dataset.pt){payTab=t.dataset.pt;renderPay()}
+});
+
 // ── MAIN MENU ──
 setInterval(()=>{try{if(mo.classList.contains('show')){$('mmEn').textContent=enTxt()}}catch(e){}},1000);
 const LEAGUES=[[0,'Бронза'],[1100,'Серебро'],[1250,'Золото'],[1450,'Платина'],[1700,'Алмаз'],[2000,'Легенда']];
@@ -1324,6 +1383,7 @@ function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){retur
 function refreshMenu(){
   try{$('mmEn').textContent=enTxt()}catch(e){}
   try{syncNow()}catch(e){}
+  try{$('mmGems').textContent=wl().gems}catch(e){}
   try{const u=(NET&&NET.me)?NET.me.unread+NET.me.reqs:0,b=$('bdC');b.textContent=u;b.style.display=u?'block':'none'}catch(e){}
   try{const q=claimableCount(),b=$('bdQ');b.textContent=q;b.style.display=q?'block':'none';const sp=SV.sp||0,b2=$('bdS');b2.textContent=sp;b2.style.display=sp?'block':'none';}catch(e){console.error(e)}
   const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];

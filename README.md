@@ -29,3 +29,11 @@ alter table game_state enable row level security;  -- доступ только 
 4. Redeploy. В логах Render должно быть `Storage: Supabase, players: N`.
 
 Без этих переменных сервер хранит данные в файле (на бесплатном Render он стирается при перезапуске).
+
+## Донат (Telegram Stars)
+Нужны переменные окружения на Render:
+- `BOT_TOKEN` — токен бота (тот же, что для проверки initData).
+- `PUBLIC_URL` — адрес сервиса (на Render подставляется сам через `RENDER_EXTERNAL_URL`).
+
+Сервер сам вызовет `setWebhook` на `/tg/webhook`. Бот отвечает на `/terms` и `/paysupport` (требование Telegram для платежей).
+Кошелёк (кристаллы, VIP, покупки) хранится только на сервере; повторные вебхуки не зачисляются дважды.

@@ -11,6 +11,7 @@ const STATIC = { '/': 'index.html', '/index.html': 'index.html', '/fight-visual.
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 const social = require('./social');
 const server = http.createServer((req, res) => {
+  if (social.webhook(req, res)) return;
   if (social.middleware(req, res)) return;
   const url = (req.url || '/').split('?')[0];
   if (url === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
