@@ -252,6 +252,8 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .gitem button{border:0;border-radius:8px;background:#3a3a3a;color:#fff;font-weight:800;padding:8px 10px;font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
 .gitem button.go{background:linear-gradient(180deg,#3fb04a,#1f7a2b)}.gitem button.buy{background:linear-gradient(180deg,#e0a52c,#a56a10)}.gitem button:disabled{opacity:.45}
 #shopOverlay,#oppOverlay,#fighterOverlay{background:#0a0a0a}
+.mm-en{font-size:12px;color:#7fd0ff;font-weight:800;white-space:nowrap}
+.mm-rate{flex-wrap:wrap;row-gap:2px}
 </style>
 </head>
 <body>
@@ -306,7 +308,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <div class="mm-lvrow"><span class="mm-lv" id="mmLv">1</span><div class="mm-xp"><i id="mmXpBar"></i><b id="mmXpTxt">0 / 100</b></div></div>
     </div>
   </div>
-  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span></div>
+  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span></div>
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
@@ -399,13 +401,15 @@ const NICK1=['Серый','Лысый','Кривой','Тощий','Рыжий',
 const NICK2=['Валера','Гена','Макс','Жора','Борян','Колян','Стас','Вован','Тимоха','Игорь','Паша','Семён','Руслан','Эдик','Дрон','Лёха'];
 const DESCS=['Дерётся грязно','Не знает слова «стоп»','Бьёт и не краснеет','Держит район','Только что из армии','Тренируется в гараже','Видел виды','Злой с утра'];
 function oppAt(i){
-  if(i<OPP0.length)return OPP0[i];
-  const k=i-4,boss=i%5===4,r=((i*2654435761)>>>0);
-  const o={id:i,name:NICK1[r%16]+' '+NICK2[(r>>>7)%16],level:12+k*2,
-    skill:Math.min(.78,.55+k*.01),hpMult:1.8+k*.16,dmgMult:Math.min(4,1.6+k*.06),
-    reward:600+k*80,xp:300+k*45,desc:DESCS[(r>>>13)%8]};
-  if(boss){o.name='\u{1F451} '+o.name;o.hpMult*=1.35;o.dmgMult*=1.2;o.reward*=2;o.xp*=2;o.desc='БОСС! Награда x2'}
-  return o;
+  let o;
+  if(i<OPP0.length)o={...OPP0[i]};
+  else{const k=i-4,r=((i*2654435761)>>>0);
+    o={id:i,name:NICK1[r%16]+' '+NICK2[(r>>>7)%16],level:Math.min(100,12+k*2),desc:DESCS[(r>>>13)%8]};}
+  const lv=o.level,boss=i>=5&&i%5===4;
+  o.skill=Math.min(.8,.15+lv*.012);o.hpMult=(100+14*(lv-1))/100*(boss?1.3:1);o.dmgMult=(1+.045*(lv-1))*(boss?1.15:1);
+  o.reward=Math.round((30+8*lv)*(boss?2.5:1));o.xp=Math.round(xpFight(lv)*(boss?2:1));
+  if(boss){o.name='\u{1F451} '+o.name;o.desc='\u0411\u041e\u0421\u0421! \u0422\u0440\u0443\u0434\u043d\u044b\u0439 \u0438 \u0449\u0435\u0434\u0440\u044b\u0439';}
+  o.boss=boss;return o;
 }
 
 // ── SHOP ITEMS ──
@@ -429,7 +433,7 @@ const CHAT_CRIT=[
 ];
 
 // ── SAVE DATA ──
-const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,war:0,inv:{},eq:{},rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
+const DEF_SAVE={seed:0,money:0,xp:0,level:1,wins:0,losses:0,npcs:[],ups:{gloves:0,bandages:0,sneakers:0},totalKos:0,war:0,en:{v:10,t:0},inv:{},eq:{},rating:1000,career:0,sp:0,sk:{},spInit:1,stat:{crits:0,blocks:0,dmg:0,pvpWins:0,pvpGames:0,spent:0,loginDays:0},qc:{},login:{last:'',streak:0},daily:{date:'',list:[],bonus:false}};
 let SV;
 function loadSave(){
   try{const d=localStorage.getItem('fc_save');if(d){const j=JSON.parse(d);SV={...DEF_SAVE,...j,ups:{...DEF_SAVE.ups,...(j.ups||{})},stat:{...DEF_SAVE.stat,...(j.stat||{})},sk:j.sk||{},inv:j.inv||{},eq:j.eq||{},qc:j.qc||{},login:{...DEF_SAVE.login,...(j.login||{})},daily:j.daily||{date:'',list:[],bonus:false}};
@@ -449,8 +453,9 @@ function getExtraDmg(){
 function getEnergyRegen(){
   return C.energyPerTurn+SV.ups.sneakers*2+Math.round(sk('rec')*1.5)+gs('reg');
 }
+function xpFight(l){return 30+6*l}
 function getLevelXp(lvl){
-  return lvl*60+40;
+  return Math.round((4+0.9*lvl)*xpFight(lvl)*0.9);
 }
 function sk(k){return (SV.sk&&SV.sk[k])||0;}
 function getCrit(){return .15+sk('crit')*.015+gs('crit')/100;}
@@ -459,6 +464,8 @@ function getPierce(){return Math.min(.92,C.blockReduction+sk('pierce')*.04);}
 function getGuard(){return Math.max(.2,C.blockReduction-sk('guard')*.03);}
 function getSkin(){return Math.max(.4,1-sk('skin')*.015-gs('armor')/100);}
 
+function clubTag(){return (NET&&NET.mine&&NET.mine.name)?NET.mine.name.slice(0,8).toUpperCase():''}
+function applyLooks(oppLevel,oppSeed){try{FV.setFighterObj('left',Hero.fighterFor(SV.level,SV.seed,gearVis(),clubTag()));FV.setFighterObj('right',Hero.fighterFor(oppLevel,oppSeed,null,''));}catch(e){console.error('looks',e)}}
 // ── GEAR ──
 const SLOTS=[['head','\u{1F9E2} Голова'],['body','\u{1F455} Тело'],['legs','\u{1FA73} Ноги'],['feet','\u{1F45F} Обувь'],['hands','\u{1F94A} Руки'],['acc','\u{1F48E} Аксессуар']];
 const RAR={c:['Обычное','#9a9a9a'],r:['Редкое','#4aa3ff'],e:['Эпическое','#b06bff'],l:['Легендарное','#ffb02e']};
@@ -490,7 +497,7 @@ const GEAR=[
  ['acc','a2','Полотенце на плече','\u{1F9FB}','c',13,600,{reg:1,hp:10},{prop:'towel'}],
  ['acc','a3','Татуировки','\u{1F409}','e',26,2500,{dmg:3,armor:2},{prop:'tattoo'}],
  ['acc','a4','Пояс чемпиона','\u{1F3C6}','l',45,20000,{dmg:8,hp:60,crit:5},{prop:'belt'}]
-].map(a=>({slot:a[0],id:a[1],name:a[2],icon:a[3],r:a[4],lvl:a[5],price:a[6],st:a[7],vis:a[8]}));
+].map(a=>({slot:a[0],id:a[1],name:a[2],icon:a[3],r:a[4],lvl:Math.max(1,Math.round(a[5]*1.7)),price:Math.round(a[6]*({c:6,r:10,e:14,l:18}[a[4]])/10)*10,st:a[7],vis:a[8]}));
 const GEARBY={};GEAR.forEach(g=>GEARBY[g.id]=g);
 function gs(k){let v=0;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id])v+=g.st[k]||0}return v;}
 function gearVis(){const o={};let any=false;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id]){Object.assign(o,g.vis);any=true}}return any?o:null;}
@@ -517,6 +524,20 @@ function renderGear(){
     d.appendChild(b);list.appendChild(d);
   });
 }
+
+
+// ── ЭНЕРГИЯ БОЁВ ──
+const EN_MAX=10,EN_MS=30*60*1000;
+function enTick(){
+  const e=SV.en||(SV.en={v:EN_MAX,t:Date.now()});
+  if(e.v>=EN_MAX){e.v=Math.min(e.v,EN_MAX+10);e.t=Date.now();return e}
+  const n=Date.now(),k=Math.floor((n-e.t)/EN_MS);
+  if(k>0){e.v=Math.min(EN_MAX,e.v+k);e.t=e.v>=EN_MAX?n:e.t+k*EN_MS}
+  return e;
+}
+function enLeft(){const e=enTick();return e.v>=EN_MAX?0:Math.max(0,EN_MS-(Date.now()-e.t))}
+function enTxt(){const e=enTick(),l=enLeft();let t='';if(e.v<EN_MAX){const m=Math.floor(l/60000),s=Math.floor(l/1000)%60;t=' \u2022 +1 \u0447\u0435\u0440\u0435\u0437 '+m+':'+String(s).padStart(2,'0')}return '\u26a1 '+e.v+'/'+EN_MAX+t}
+function takeEnergy(){const e=enTick();if(e.v<1){sl('\u26a1 \u041d\u0435\u0442 \u044d\u043d\u0435\u0440\u0433\u0438\u0438! '+enTxt());return false}const was=e.v>=EN_MAX;e.v--;if(was)e.t=Date.now();saveSv();return true}
 
 // ── DOM REFS ──
 const $=id=>document.getElementById(id);
@@ -583,6 +604,7 @@ const S={turn:0,round:1,phase:'idle',playerBlocked:false,playerBlockZone:null,en
 const P={name:'\u0411\u043e\u0431\u0451\u0440',health:100,energy:100};
 const E={name:'\u041c\u0443\u0445\u0430',health:100,energy:100,maxHP:100,skill:0.3};
 function initCombat(opp){
+  if(!takeEnergy())return;
   const o=oppAt(opp);
   const mh=getMaxHP();
   const emh=Math.round(C.maxHealth*o.hpMult);
@@ -595,7 +617,7 @@ function initCombat(opp){
   sce(true);ub();ca(f1);ca(f2);
   [mo,oo,wo].forEach(el=>el.classList.remove('show'));
   gw.classList.remove('screen-shake');
-  FV.setBackground(opp>=4?'ring':'yard');FV.setFighters(SV.seed,1000+opp*7919,0,0);
+  FV.setBackground(opp>=4?'ring':'yard');FV.setFighters(SV.seed,1000+opp*7919,0,0);applyLooks(oppAt(opp).level,1000+opp*7919);
   sl('\u041d\u0430\u0447\u0438\u043d\u0430\u0435\u043c!');
 }
 function epa(at){
@@ -664,7 +686,7 @@ function endCombat(win){
   S.phase='gameOver';sce(false);
   const o=oppAt(S.selectedOpp),first=S.selectedOpp>=SV.career;
   if(win){
-    const rw=first?o.reward:Math.round(o.reward*.5),rxp=first?o.xp:Math.round(o.xp*.5);
+    const df=cl(1+(o.level-SV.level)*.1,.4,1.4),rep=first?1:.6,rw=Math.round(o.reward*df*rep*(1+(SV.level/150))),rxp=Math.round(o.xp*df*rep);
     SV.wins++;SV.money+=rw;addRating(first?8+Math.min(S.selectedOpp,25):3);track('win');track('fight');SV.war=(SV.war||0)+(S.selectedOpp%5===4&&S.selectedOpp>=4?3:1);if(first)SV.career=S.selectedOpp+1;
     if(E.health<=0){SV.totalKos++;}
     addXp(rxp);
@@ -684,15 +706,15 @@ function endCombat(win){
 // ── SCREEN RENDERING ──
 function renderOpponents(){
   const list=$('oppList');list.innerHTML='';
-  const from=Math.max(0,SV.career-3);
-  for(let i=from;i<SV.career+3;i++){
-    const o=oppAt(i),beaten=i<SV.career,locked=i>SV.career;
+  const from=Math.max(0,SV.career-4);
+  for(let i=from;i<SV.career+2;i++){
+    const o=oppAt(i),beaten=i<SV.career,lvLock=o.level>SV.level+2,locked=i>SV.career||lvLock;
     const div=document.createElement('div');div.className='oitem';
     div.innerHTML='<span class="oname'+(beaten?' beaten':'')+'">'+(beaten?'✓ ':locked?'\u{1F512} ':'')+'#'+(i+1)+' '+o.name+'</span>'+
       '<span class="oinfo">'+o.desc+' • ур. '+o.level+'</span>'+
-      '<span class="oreward">\u{1F4B0} '+(beaten?Math.round(o.reward/2):o.reward)+'</span>';
+      '<span class="oreward">\u{1F4B0} '+Math.round(o.reward*(beaten?.6:1))+'</span>';
     if(beaten)div.style.opacity='0.65';
-    if(locked){div.style.opacity='0.5';div.onclick=()=>sl('\u{1F512} Сначала победи предыдущего');}
+    if(locked){div.style.opacity='0.5';div.onclick=()=>sl(lvLock?'\u{1F512} Нужен уровень '+(o.level-2):'\u{1F512} Сначала победи предыдущего');}
     else div.onclick=()=>{S.selectedOpp=i;initCombat(i);};
     list.appendChild(div);
   }
@@ -765,7 +787,7 @@ document.addEventListener('click',(e)=>{
   else if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
   else if(id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
   else if(id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
-  else if(t.id==='btnPvp'){mo.classList.remove('show');$('pvpFindBtn').disabled=false;$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
+  else if(t.id==='btnPvp'){if(enTick().v<1){sl('\u26a1 \u041d\u0435\u0442 \u044d\u043d\u0435\u0440\u0433\u0438\u0438! '+enTxt());return}mo.classList.remove('show');$('pvpFindBtn').disabled=false;$('pvpStatus').textContent='';$('pvpStatus').style.color='#ffcc44';$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpQueueOverlay').classList.add('show');}
   else if(t.id==='pvpFindBtn'){$('pvpFindBtn').disabled=true;$('pvpFindBtn').style.display='none';$('pvpCancelBtn').style.display='';$('pvpCancelBtn').disabled=false;sl('🔍 Поиск соперника...');pvpConnect();}
   else if(t.id==='pvpCancelBtn'){$('pvpFindBtn').disabled=false;$('pvpFindBtn').style.display='';$('pvpCancelBtn').style.display='none';$('pvpStatus').textContent='Поиск отменён';if(pvpWs){try{pvpWs.send(JSON.stringify({type:'cancel_search'}));}catch(e){}try{pvpWs.close();}catch(e){}pvpWs=null;}}
   else if(t.id==='pvpAtkBtn'){if(pvpWs&&pvpState.myTurn){pvpWs.send(JSON.stringify({type:'hit'}));}}
@@ -850,12 +872,12 @@ function pvpHandleMsg(msg) {
       pvpState.playerId = msg.playerId;
       pvpState.myHP = msg.hp[msg.playerId];
       pvpMax.me = msg.maxHp ? msg.maxHp[msg.playerId] : 100; pvpMax.opp = msg.maxHp ? msg.maxHp[msg.playerId === 'A' ? 'B' : 'A'] : 100;
-      pvpState.ghost = !!msg.ghost; pvpState.oppLvl = msg.opponentLevel || 1;
+      takeEnergy(); pvpState.ghost = !!msg.ghost; pvpState.oppLvl = msg.opponentLevel || 1;
       pvpState.oppHP = msg.hp[msg.playerId === 'A' ? 'B' : 'A'];
       pvpState.myTurn = msg.turn === msg.playerId;
       pvpState.inMatch = true; pvpLogLines = [];
       pvpState.oppName = msg.opponentName || '\u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a';
-      FV.setBackground('ring'); FV.setFighters(SV.seed, msg.opponentSeed || 777, 0, 0);
+      FV.setBackground('ring'); FV.setFighters(SV.seed, msg.opponentSeed || 777, 0, 0); applyLooks(msg.opponentLevel || 1, msg.opponentSeed || 777);
       $('pvpQueueOverlay').classList.remove('show');
       startPvPBattle();
       break;
@@ -874,7 +896,7 @@ function pvpHandleMsg(msg) {
       break;
     }
     case 'end': {
-      const won = msg.winner === pvpState.playerId; addRating(pvpState.ghost?(won?12:-8):(won?25:-18));track('pvp');if(won){track('pvpwin');SV.war=(SV.war||0)+(pvpState.ghost?3:5);SV.money+=pvpState.ghost?40:60;addXp(40);}else addXp(15);saveSv();
+      const won = msg.winner === pvpState.playerId; addRating(pvpState.ghost?(won?12:-8):(won?25:-18));track('pvp');if(won){track('pvpwin');SV.war=(SV.war||0)+(pvpState.ghost?3:5);SV.money+=Math.round((20+SV.level*3)*(pvpState.ghost?.6:1));addXp(Math.round(xpFight(SV.level)*(pvpState.ghost?.7:1)));}else addXp(Math.round(xpFight(SV.level)*.25));saveSv();
       if (msg.reason === 'timeout') pvpLogLines.push(won ? '\u23F1 \u0421\u043e\u043f\u0435\u0440\u043d\u0438\u043a \u0443\u0441\u043d\u0443\u043b' : '\u23F1 \u0412\u0440\u0435\u043c\u044f \u0445\u043e\u0434\u0430 \u0432\u044b\u0448\u043b\u043e');
       pvpLogLines.push(won ? '🔥 ПОБЕДА!' : '💀 Поражение');
       $('pvpStatus').textContent = won ? '🎉 ТЫ ПОБЕДИЛ!' : '💀 ТЫ ПРОИГРАЛ';
@@ -975,10 +997,11 @@ function resetSkills(){
 function dstr(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function yday(){const d=new Date();d.setDate(d.getDate()-1);return dstr(d);}
 // rewards
+function norm(r,k){k=k||.4;return {money:Math.round(((r.money||0)+(r.sp||0)*250)*k),xp:Math.round((r.xp||0)*k*1.5),en:r.en||0};}
 function giveReward(r){
-  if(r.money)SV.money+=r.money;if(r.sp)SV.sp=(SV.sp||0)+r.sp;if(r.xp)addXp(r.xp);saveSv();
+  if(r.money)SV.money+=r.money;if(r.xp)addXp(r.xp);if(r.en){const e=enTick();e.v=Math.min(EN_MAX+10,e.v+r.en);}saveSv();
 }
-function rewardTxt(r){return [r.money?'\u{1F4B0}'+r.money:'',r.xp?'⭐'+r.xp:'',r.sp?'\u{1F9EC}'+r.sp:''].filter(Boolean).join(' ');}
+function rewardTxt(r){return [r.money?'\u{1F4B0}'+r.money:'',r.xp?'\u2b50'+r.xp:'',r.en?'\u26a1'+r.en:''].filter(Boolean).join(' ');}
 // daily missions
 const DPOOL=[
  {t:'win',txt:'Победить в {n} боях',g:[2,3,4],r:1},
@@ -995,7 +1018,7 @@ function ensureDaily(){
   const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
   const pool=DPOOL.slice(),list=[],tier=SV.level<5?0:SV.level<15?1:2;
   for(let i=0;i<3;i++){const p=pool.splice(Math.floor(rnd()*pool.length),1)[0];const n=p.g[tier];
-    list.push({t:p.t,txt:p.txt.replace('{n}',n),goal:n,prog:0,claimed:false,rw:{money:Math.round((40+SV.level*8)*p.r),xp:Math.round((30+SV.level*6)*p.r)}});}
+    list.push({t:p.t,txt:p.txt.replace('{n}',n),goal:n,prog:0,claimed:false,rw:{money:Math.round((25+SV.level*3)*p.r),xp:Math.round((20+SV.level*3)*p.r)}});}
   SV.daily={date:today,list,bonus:false};saveSv();
 }
 function track(type,n){
@@ -1020,7 +1043,7 @@ const CHAINS=[
  {n:'Постоянный',ic:'\u{1F4C5}',txt:'Заходить в игру (дней)',get:()=>lg('loginDays'),st:[[3,{money:150}],[7,{money:400,sp:1}],[21,{money:1200,sp:2}],[60,{money:3000,sp:3}]]},
  {n:'Шопоголик',ic:'\u{1F6CD}️',txt:'Потратить монет',get:()=>lg('spent'),st:[[200,{xp:60}],[1000,{money:200,sp:1}],[5000,{money:800,sp:2}]]}
 ];
-function chainStage(c){const i=SV.qc[c.n]||0;return i<c.st.length?c.st[i]:null;}
+function chainStage(c){const i=SV.qc[c.n]||0;if(i>=c.st.length)return null;const s=c.st[i];return [s[0],norm(s[1])];}
 // login bonus
 const LOGIN=[{money:100},{money:150},{money:200,xp:100},{money:300},{money:400,sp:1},{money:600,xp:200},{money:1500,sp:3}];
 function todayStr(){return (NET&&NET.today)||dstr();}
@@ -1036,8 +1059,8 @@ async function claimLogin(){
   try{const j=await api('login/claim');NET=j.board;day=j.day;today=NET.today;SV.stat.loginDays=Math.max(SV.stat.loginDays+1,j.days);}
   catch(e){if(/^Уже/.test(e.message)){await syncNow(true);return}
     SV.stat.loginDays++;}
-  SV.login={last:today,streak:day};giveReward(LOGIN[day-1]);saveSv();
-  sl('\u{1F381} Бонус дня '+day+': '+rewardTxt(LOGIN[day-1]));
+  SV.login={last:today,streak:day};giveReward(norm(LOGIN[day-1],.5));saveSv();
+  sl('\u{1F381} Бонус дня '+day+': '+rewardTxt(norm(LOGIN[day-1],.5)));
 }
 function claimableCount(){
   ensureDaily();let n=0;
@@ -1060,9 +1083,9 @@ function renderQuests(){
       b.onclick=()=>{m.claimed=true;giveReward(m.rw);renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
     });
     const all=SV.daily.list.every(m=>m.claimed),d=document.createElement('div');d.className='q'+(all&&!SV.daily.bonus?' ready':'');
-    d.innerHTML='<div class="qh"><span>\u{1F381} Выполни все 3 задания</span></div><div class="qr"><span>\u{1F4B0}250 \u{1F9EC}1</span></div>';
+    d.innerHTML='<div class="qh"><span>\u{1F381} Выполни все 3 задания</span></div><div class="qr"><span>\u{1F4B0}… \u26a13</span></div>';
     const b=document.createElement('button');b.textContent=SV.daily.bonus?'✓':'Сундук';b.disabled=!all||SV.daily.bonus;
-    b.onclick=()=>{SV.daily.bonus=true;giveReward({money:250,sp:1});renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
+    b.onclick=()=>{SV.daily.bonus=true;giveReward({money:100+SV.level*4,en:3});renderQuests();refreshMenu();};d.querySelector('.qr').appendChild(b);L.appendChild(d);
     L.insertAdjacentHTML('beforeend','<div style="text-align:center;color:#888;font-size:12px">Новые задания — каждый день</div>');
   }else if(qTab==='quests'){
     CHAINS.forEach(c=>{
@@ -1076,7 +1099,7 @@ function renderQuests(){
   }else{
     const p=loginPreview(),g=document.createElement('div');g.className='days';
     LOGIN.forEach((r,i)=>{const n=i+1,done=p.claimed?n<=p.day:n<p.day,today=!p.claimed&&n===p.day;
-      g.insertAdjacentHTML('beforeend','<div class="day'+(done?' done':'')+(today?' today':'')+(n===7?' big':'')+'"><b>День '+n+'</b><span>'+(done?'✅':n===7?'\u{1F3C6}':'\u{1F381}')+'</span>'+rewardTxt(r)+'</div>');});
+      g.insertAdjacentHTML('beforeend','<div class="day'+(done?' done':'')+(today?' today':'')+(n===7?' big':'')+'"><b>День '+n+'</b><span>'+(done?'✅':n===7?'\u{1F3C6}':'\u{1F381}')+'</span>'+rewardTxt(norm(r,.5))+'</div>');});
     L.appendChild(g);
     const b=document.createElement('button');b.className='sbtn';b.style.cssText='width:100%;margin-top:14px;padding:12px;font-size:16px';
     b.textContent=p.claimed?'✓ Сегодняшний бонус получен. Заходи завтра!':'\u{1F381} Забрать бонус дня '+p.day;b.disabled=p.claimed;
@@ -1146,7 +1169,7 @@ function renderSoc(){
     }
     L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F6E1} '+m.name+'<b>⚔ '+m.pts+' очков недели</b>Очки: победа на лестнице +1, босс +3, победа в PvP +5</div>');
     if(NET.reward){const r=NET.reward;L.insertAdjacentHTML('beforeend','<button class="sbtn" id="warClaim" style="width:100%;padding:12px;margin-bottom:10px;font-size:15px">\u{1F381} Награда за войну: место '+r.place+' — \u{1F4B0}'+r.money+' \u{1F9EC}'+r.sp+'</button>');
-      $('warClaim').onclick=async()=>{try{const j=await api('war/claim');giveReward({money:j.reward.money,sp:j.reward.sp});sl('\u{1F381} Награда получена!');await syncNow(true);refreshMenu();}catch(e){sl('⚠ '+e.message)}};}
+      $('warClaim').onclick=async()=>{try{const j=await api('war/claim');giveReward(norm({money:j.reward.money,sp:j.reward.sp},.4));sl('\u{1F381} Награда получена!');await syncNow(true);refreshMenu();}catch(e){sl('⚠ '+e.message)}};}
     m.members.forEach((p,i)=>L.insertAdjacentHTML('beforeend','<div class="row'+(p.id===UID?' me':'')+'"><span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+'</small></span><span class="sc">⚔ '+p.wpts+'</span></div>'));
     L.insertAdjacentHTML('beforeend','<button class="sbtn" id="clanLeave" style="width:100%;margin-top:10px">Выйти из клана</button>');
     $('clanLeave').onclick=()=>netAct('clan/leave');
@@ -1162,11 +1185,13 @@ document.addEventListener('click',e=>{
 });
 
 // ── MAIN MENU ──
+setInterval(()=>{try{if(mo.classList.contains('show')){$('mmEn').textContent=enTxt()}}catch(e){}},1000);
 const LEAGUES=[[0,'Бронза'],[1100,'Серебро'],[1250,'Золото'],[1450,'Платина'],[1700,'Алмаз'],[2000,'Легенда']];
 function addRating(d){SV.rating=Math.max(0,(SV.rating||1000)+d);}
 function leagueOf(r){let i=0;LEAGUES.forEach((l,k)=>{if(r>=l[0])i=k});return i;}
 function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){return null}}
 function refreshMenu(){
+  try{$('mmEn').textContent=enTxt()}catch(e){}
   try{syncNow()}catch(e){}
   try{const q=claimableCount(),b=$('bdQ');b.textContent=q;b.style.display=q?'block':'none';const sp=SV.sp||0,b2=$('bdS');b2.textContent=sp;b2.style.display=sp?'block':'none';}catch(e){console.error(e)}
   const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];
