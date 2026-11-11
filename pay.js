@@ -1,4 +1,4 @@
-// Донат: Telegram Stars -> кристаллы 🦷, VIP, косметика, бусты. Кошелёк только на сервере.
+// Донат: Telegram Stars -> кристаллы 💎, VIP, косметика, бусты. Кошелёк только на сервере.
 const https = require('https');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const PUBLIC_URL = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '';
@@ -6,12 +6,12 @@ const SECRET = process.env.WEBHOOK_SECRET || (BOT_TOKEN ? require('crypto').crea
 const DAY = 864e5;
 
 const SKU = {
-  g1: { title: '30 кристаллов', desc: 'Малый мешок кристаллов 🦷', stars: 25, gems: 30 },
-  g2: { title: '130 кристаллов', desc: 'Мешок кристаллов 🦷 (+8%)', stars: 100, gems: 130 },
-  g3: { title: '350 кристаллов', desc: 'Сундук кристаллов 🦷 (+12%)', stars: 250, gems: 350 },
-  g4: { title: '750 кристаллов', desc: 'Кубышка кристаллов 🦷 (+20%)', stars: 500, gems: 750 },
-  starter: { title: 'Стартовый набор', desc: '100 🦷, кепка «Новичок» и 3 дня VIP. Один раз', stars: 50, gems: 100, vipDays: 3, item: 'pc_cap', once: true },
-  vip: { title: 'VIP на 30 дней', desc: '+20% монет и опыта и 5 🦷 каждый день', stars: 150, vipDays: 30 }
+  g1: { title: '30 кристаллов', desc: 'Малый мешок кристаллов 💎', stars: 25, gems: 30 },
+  g2: { title: '130 кристаллов', desc: 'Мешок кристаллов 💎 (+8%)', stars: 100, gems: 130 },
+  g3: { title: '350 кристаллов', desc: 'Сундук кристаллов 💎 (+12%)', stars: 250, gems: 350 },
+  g4: { title: '750 кристаллов', desc: 'Кубышка кристаллов 💎 (+20%)', stars: 500, gems: 750 },
+  starter: { title: 'Стартовый набор', desc: '100 💎, кепка «Новичок» и 3 дня VIP. Один раз', stars: 50, gems: 100, vipDays: 3, item: 'pc_cap', once: true },
+  vip: { title: 'VIP на 30 дней', desc: '+20% монет и опыта и 5 💎 каждый день', stars: 150, vipDays: 30 }
 };
 // за кристаллы: косметика (статы как у обычных вещей, не сильнее), буст, энергия
 const PITEMS = [
@@ -99,7 +99,7 @@ module.exports = function (getDb, touch) {
       return tg('sendMessage', { chat_id: m.chat.id, text: '✅ Спасибо за покупку! Всё уже в игре.' });
     }
     const t = String(m.text || '');
-    if (t.startsWith('/terms')) return tg('sendMessage', { chat_id: m.chat.id, text: 'Условия: кристаллы 🦷 и VIP — цифровые товары внутри игры Fighting Club, оплата Telegram Stars. Они не обмениваются на деньги и привязаны к вашему аккаунту. Платные товары не дают преимущества в силе, кроме косметики и ускорения.' });
+    if (t.startsWith('/terms')) return tg('sendMessage', { chat_id: m.chat.id, text: 'Условия: кристаллы 💎 и VIP — цифровые товары внутри игры Fighting Club, оплата Telegram Stars. Они не обмениваются на деньги и привязаны к вашему аккаунту. Платные товары не дают преимущества в силе, кроме косметики и ускорения.' });
     if (t.startsWith('/paysupport')) return tg('sendMessage', { chat_id: m.chat.id, text: 'Вопросы по оплате: напишите сюда с описанием покупки, мы ответим и при необходимости вернём Stars.' });
     if (t.startsWith('/start')) return tg('sendMessage', { chat_id: m.chat.id, text: '🥊 Fighting Club — нажми кнопку меню, чтобы играть.' });
   }

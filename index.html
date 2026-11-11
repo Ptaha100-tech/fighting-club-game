@@ -318,7 +318,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
       <div class="mm-lvrow"><span class="mm-lv" id="mmLv">1</span><div class="mm-xp"><i id="mmXpBar"></i><b id="mmXpTxt">0 / 100</b></div></div>
     </div>
   </div>
-  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span><button id="btnPay" class="mm-pay">🦷 <b id="mmGems">0</b> +</button></div>
+  <div class="mm-rate"><span id="mmRating">🏆 1000</span><span id="mmLeague" class="mm-league">Бронза</span><span id="mmNext" class="mm-next"></span><span id="mmEn" class="mm-en"></span><button id="btnPay" class="mm-pay">💎 <b id="mmGems">0</b> +</button></div>
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
@@ -368,7 +368,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 </div>
 <div class="overlay" id="payOverlay" style="background:#0a0805">
   <button class="back-btn" id="payBack">← НАЗАД</button>
-  <div class="otitle">🦷 ДОНАТ</div>
+  <div class="otitle">💎 ДОНАТ</div>
   <div class="tabs"><button data-pt="gems" class="on">Купить</button><button data-pt="use">Ускорить</button><button data-pt="cos">Вид</button></div>
   <div id="payList"></div>
 </div>
@@ -1353,19 +1353,19 @@ function renderPay(){
   const L=$('payList');L.innerHTML='';const w=wl();
   document.querySelectorAll('[data-pt]').forEach(b=>b.classList.toggle('on',b.dataset.pt===payTab));
   if(!PAYCAT){L.innerHTML='<div class="hint">Загрузка…</div>';return}
-  L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F9B7} '+w.gems+' кристаллов'+(vipOn()?'<b>\u{1F451} VIP до '+new Date(w.vip).toLocaleDateString()+'</b>':'')+(w.boost>Date.now()?'<br>⚡ Буст опыта ×2 до '+new Date(w.boost).toLocaleTimeString().slice(0,5):'')+'<br><small>Платное не делает сильнее в бою: только ускорение и внешний вид</small></div>');
+  L.insertAdjacentHTML('beforeend','<div class="warbox">💎 '+w.gems+' кристаллов'+(vipOn()?'<b>\u{1F451} VIP до '+new Date(w.vip).toLocaleDateString()+'</b>':'')+(w.boost>Date.now()?'<br>⚡ Буст опыта ×2 до '+new Date(w.boost).toLocaleTimeString().slice(0,5):'')+'<br><small>Платное не делает сильнее в бою: только ускорение и внешний вид</small></div>');
   const row=(ic,nm,sub,btn,fn,dis)=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span class="pl">'+ic+'</span><span class="nm">'+nm+'<small>'+sub+'</small></span>';const b=document.createElement('button');b.textContent=btn;b.disabled=!!dis;b.onclick=fn;d.appendChild(b);L.appendChild(d)};
   if(payTab==='gems'){
-    if(!w.starter)row('\u{1F381}','Стартовый набор','100 \u{1F9B7} + кепка + 3 дня VIP • один раз','⭐ '+PAYCAT.sku.starter.stars,()=>buyStars('starter'));
-    ['g1','g2','g3','g4'].forEach(k=>{const s=PAYCAT.sku[k];row('\u{1F9B7}',s.title,s.desc.replace(/^.*?\(/,'(').replace(/^\(|\)$/g,'')||'','⭐ '+s.stars,()=>buyStars(k))});
+    if(!w.starter)row('\u{1F381}','Стартовый набор','100 💎 + кепка + 3 дня VIP • один раз','⭐ '+PAYCAT.sku.starter.stars,()=>buyStars('starter'));
+    ['g1','g2','g3','g4'].forEach(k=>{const s=PAYCAT.sku[k];row('💎',s.title,s.desc.replace(/^.*?\(/,'(').replace(/^\(|\)$/g,'')||'','⭐ '+s.stars,()=>buyStars(k))});
     row('\u{1F451}','VIP 30 дней',PAYCAT.sku.vip.desc,'⭐ '+PAYCAT.sku.vip.stars,()=>buyStars('vip'));
     if(!w.pay)L.insertAdjacentHTML('beforeend','<div class="hint">Оплата Stars пока не подключена на сервере.</div>');
   }else if(payTab==='use'){
-    row('⚡','Полная энергия','Восстановить до максимума',PAYCAT.energyCost+' \u{1F9B7}',()=>gemAct('gem/energy',{},'⚡ Энергия полная'),w.gems<PAYCAT.energyCost);
-    row('\u{1F4DA}','Буст опыта ×2 на 24 часа','Складывается с VIP',PAYCAT.boostCost+' \u{1F9B7}',()=>gemAct('gem/boost',{},'\u{1F4DA} Буст включён'),w.gems<PAYCAT.boostCost);
+    row('⚡','Полная энергия','Восстановить до максимума',PAYCAT.energyCost+' 💎',()=>gemAct('gem/energy',{},'⚡ Энергия полная'),w.gems<PAYCAT.energyCost);
+    row('\u{1F4DA}','Буст опыта ×2 на 24 часа','Складывается с VIP',PAYCAT.boostCost+' 💎',()=>gemAct('gem/boost',{},'\u{1F4DA} Буст включён'),w.gems<PAYCAT.boostCost);
   }else{
     L.insertAdjacentHTML('beforeend','<div class="hint">Купленное надевай в «Магазин → Вещи». Статы как у обычных вещей, главное — внешний вид.</div>');
-    PAYCAT.items.forEach(it=>{const own=!!w.pinv[it.id];row(it.icon,it.name,stChips2(it.st),own?'Куплено':it.price+' \u{1F9B7}',()=>gemAct('gem/item',{id:it.id},'✓ '+it.name),own||w.gems<it.price)});
+    PAYCAT.items.forEach(it=>{const own=!!w.pinv[it.id];row(it.icon,it.name,stChips2(it.st),own?'Куплено':it.price+' 💎',()=>gemAct('gem/item',{id:it.id},'✓ '+it.name),own||w.gems<it.price)});
   }
 }
 document.addEventListener('click',e=>{const t=e.target,id=t.id;
