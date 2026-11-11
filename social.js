@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const FILE = path.join(process.env.DATA_DIR || __dirname, 'social-data.json');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const MAX_MEMBERS = 20;
+let CL = null;
 let db = { players: {}, clans: {}, nextClan: 1, lastWar: null };
 // Хранилище: Supabase (SUPABASE_URL + SUPABASE_KEY) -> иначе JSON-файл. Одна строка game_state(id=1,data jsonb).
 function normUrl(u) { u = String(u || '').trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { return new URL(u).origin; } catch (e) { return ''; } }
@@ -54,6 +55,7 @@ function rollWeek() {
   db.war = { week: wk }; dirty = true;
 }
 rollWeek(); setInterval(rollWeek, 60000);
+CL = require('./club')(() => db, () => { dirty = true; });
 
 function verify(initData) {
   if (!BOT_TOKEN) return true;
@@ -67,11 +69,12 @@ function verify(initData) {
 const clean = (s, n) => String(s == null ? '' : s).replace(/[<>&"'`]/g, '').trim().slice(0, n);
 const num = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.floor(Number(v)) || 0));
 const rate = {};
-function limited(id) { const n = Date.now(), r = rate[id] || (rate[id] = []); while (r.length && n - r[0] > 10000) r.shift(); r.push(n); return r.length > 20; }
+function limited(id) { const n = Date.now(), r = rate[id] || (rate[id] = []); while (r.length && n - r[0] > 10000) r.shift(); r.push(n); return r.length > 40; }
 
 function clanView(c, full) {
   const members = Object.values(db.players).filter(p => p.clan === c.id);
-  const v = { id: c.id, name: c.name, pts: c.pts || 0, count: members.length, max: MAX_MEMBERS, rating: members.reduce((a, p) => a + p.rating, 0) };
+  const v = { id: c.id, name: c.name, pts: c.pts || 0, count: members.length, max: CL.maxMembers(c), rating: members.reduce((a, p) => a + p.rating, 0) };
+  if (full) Object.assign(v, CL.extra(c, null));
   if (full) v.members = members.sort((a, b) => (b.wpts || 0) - (a.wpts || 0)).map(p => ({ id: p.id, name: p.name, level: p.level, rating: p.rating, wpts: p.wpts || 0, owner: c.owner === p.id }));
   return v;
 }
@@ -80,14 +83,17 @@ function board(me) {
   const clans = Object.values(db.clans).map(c => clanView(c)).sort((a, b) => b.pts - a.pts || b.rating - a.rating).slice(0, 30);
   const rank = me ? all.findIndex(p => p.id === me.id) + 1 : 0;
   const mine = me && me.clan && db.clans[me.clan] ? clanView(db.clans[me.clan], true) : null;
+  if (mine) { const x = CL.extra(db.clans[me.clan], me); mine.me = x.me; mine.shop = x.shop; mine.raid = x.raid; mine.donated = me.don || 0; mine.members.forEach(m => { m.don = (db.players[m.id] || {}).don || 0; }); }
+  const unread = me ? Object.values(me.unread || {}).reduce((a, b) => a + b, 0) : 0;
   let reward = null;
   if (me && db.lastWar && me.clan && me.claimed !== db.lastWar.week) {
     const i = db.lastWar.top.findIndex(t => t.id === me.clan);
     if (i >= 0) reward = { place: i + 1, money: [1500, 900, 500][i], sp: [3, 2, 1][i] };
   }
-  return { players: all.slice(0, 50).map((p, i) => ({ place: i + 1, id: p.id, name: p.name, level: p.level, rating: p.rating, seed: p.seed, clan: p.clan && db.clans[p.clan] ? db.clans[p.clan].name : '' })),
+  return { players: all.slice(0, 50).map((p, i) => ({ place: i + 1, id: p.id, name: p.name, level: p.level, rating: p.rating, seed: p.seed, clan: p.clan && db.clans[p.clan] ? db.clans[p.clan].name : '', fr: !!(me && (me.friends || []).includes(p.id)) })),
     today: new Date().toISOString().slice(0, 10), login: me ? { last: (me.login || {}).last || '', streak: (me.login || {}).streak || 0, days: (me.login || {}).days || 0 } : null,
-    total: all.length, rank, clans, mine, war: { week: db.war.week, last: db.lastWar }, reward };
+    total: all.length, rank, clans, mine, war: { week: db.war.week, last: db.lastWar }, reward,
+    me: me ? { cc: me.cc || 0, cinv: me.cinv || {}, unread, reqs: (me.reqIn || []).length } : null };
 }
 
 function handle(req, res, url, body) {
@@ -102,6 +108,7 @@ function handle(req, res, url, body) {
   if (route === 'sync') {
     if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 };
     if (body.save && typeof body.save === 'object') { const j = JSON.stringify(body.save); if (j.length < 12000) { me.save = j; me.saveTs = Date.now(); } }
+    me.seen = Date.now(); if (body.prof && typeof body.prof === 'object') { const q = body.prof, L = num(q.lvl, 1, 200); me.prof = { lvl: L, hp: num(q.hp, 50, 150 + 60 * L), dmg: num(q.dmg, 0, 10 + 2 * L), crit: Math.min(.6, Math.max(0, +q.crit || 0)), dodge: Math.min(.5, Math.max(0, +q.dodge || 0)), armor: Math.min(.6, Math.max(0, +q.armor || 0)) }; }
     me.name = clean(body.name, 16) || me.name; me.level = num(body.level, 1, 200); me.rating = num(body.rating, 0, 9000); me.seed = num(body.seed, 1, 2e9) || me.seed; me.wins = num(body.wins, 0, 1e6);
     const d = num(body.warDelta, 0, 60);
     if (d && me.clan && db.clans[me.clan]) { me.wpts = (me.wpts || 0) + d; db.clans[me.clan].pts = (db.clans[me.clan].pts || 0) + d; }
@@ -109,6 +116,9 @@ function handle(req, res, url, body) {
   }
   if (route === 'load' && !me) return out(200, { save: null, ts: 0 });
   if (!me) return out(400, { error: 'sync first' });
+  me.seen = Date.now();
+  const cr = CL.route(route, me, body);
+  if (cr) { if (cr.error) return out(400, { error: cr.error }); if (cr.board) return out(200, Object.assign(board(me), cr.result ? { result: cr.result } : {})); return out(200, cr.data); }
   if (route === 'board') return out(200, board(me));
   if (route === 'load') return out(200, { save: me.save ? JSON.parse(me.save) : null, ts: me.saveTs || 0 });
   if (route === 'login/claim') {
@@ -119,7 +129,7 @@ function handle(req, res, url, body) {
     dirty = true; return out(200, { day: l.streak, days: l.days, board: board(me) });
   }
   if (route === 'clan/create') {
-    if (me.clan) return out(400, { error: 'Сначала выйди из клана' });
+    if (me.clan) return out(400, { error: 'Сначала выйди из клуба' });
     const name = clean(body.name, 18);
     if (name.length < 3) return out(400, { error: 'Название от 3 символов' });
     if (Object.values(db.clans).some(c => c.name.toLowerCase() === name.toLowerCase())) return out(400, { error: 'Такое название занято' });
@@ -127,9 +137,9 @@ function handle(req, res, url, body) {
   }
   if (route === 'clan/join') {
     const c = db.clans[num(body.id, 1, 1e9)];
-    if (!c) return out(400, { error: 'Клан не найден' });
-    if (me.clan) return out(400, { error: 'Сначала выйди из клана' });
-    if (clanView(c).count >= MAX_MEMBERS) return out(400, { error: 'Клан полон' });
+    if (!c) return out(400, { error: 'Клуб не найден' });
+    if (me.clan) return out(400, { error: 'Сначала выйди из клуба' });
+    if (clanView(c).count >= MAX_MEMBERS) return out(400, { error: 'Клуб полон' });
     me.clan = c.id; me.wpts = 0; dirty = true; return out(200, board(me));
   }
   if (route === 'clan/leave') {
