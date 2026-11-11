@@ -1165,10 +1165,16 @@ async function restoreFromServer(){
   if(!isFresh())return;
   try{const j=await api('load');if(j.save&&isFresh()){SV={...DEF_SAVE,...j.save,ups:{...DEF_SAVE.ups,...(j.save.ups||{})},stat:{...DEF_SAVE.stat,...(j.save.stat||{})},login:{...DEF_SAVE.login,...(j.save.login||{})}};saveSv();refreshMenu();sl('☁ Прогресс восстановлен с сервера');}}catch(e){}
 }
+function wipeLocal(n){
+  // сервер начал игру с нуля: сбрасываем локальный прогресс и берём новую эпоху
+  try{localStorage.removeItem('fc_save');localStorage.setItem('fc_ep',String(n.ep||0))}catch(e){}
+  SV={...DEF_SAVE};try{saveSv()}catch(e){}
+  NET=null;lastSync=0;sl('\u{1F504} Сервер обнулён, начинаем с нуля!');setTimeout(()=>location.reload(),1200);
+}
 async function syncNow(force){
   if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
   const d=Math.min(60,SV.war||0);
-  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;if(!window._admChecked){window._admChecked=1;admInit()}claimMail();syncClubGear();if(!PAYCAT)payLoad();else syncPremGear();saveSv();netErr=false;}
+  try{NET=await api('sync',{ep:localStorage.getItem('fc_ep')||undefined,name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});if(NET.reset){wipeLocal(NET);return}if(NET.ep)try{localStorage.setItem('fc_ep',String(NET.ep))}catch(e){}SV.war=(SV.war||0)-d;if(!window._admChecked){window._admChecked=1;admInit()}claimMail();syncClubGear();if(!PAYCAT)payLoad();else syncPremGear();saveSv();netErr=false;}
   catch(e){netErr=true;}
   if($('socOverlay').classList.contains('show'))renderSoc();
 }
@@ -1214,7 +1220,16 @@ function renderClub(L){
     if(NET.reward){const r=NET.reward;L.insertAdjacentHTML('beforeend','<button class="sbtn" id="warClaim" style="width:100%;padding:12px;margin-bottom:10px;font-size:15px">\u{1F381} Награда за войну: место '+r.place+' — \u{1F4B0}'+r.money+' \u{1F9EC}'+r.sp+'</button>');
       $('warClaim').onclick=async()=>{try{const j=await api('war/claim');giveReward(norm({money:j.reward.money,sp:j.reward.sp},.4));sl('\u{1F381} Награда получена!');await syncNow(true);refreshMenu();}catch(e){sl('⚠ '+e.message)}};}
     m.members.forEach((p,i)=>{const d=document.createElement('div');d.className='row'+(p.id===UID?' me':'');
-      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+' • взнос \u{1F4B0}'+(p.don||0)+'</small></span><span class="sc">⚔ '+p.wpts+'</span>';L.appendChild(d)});
+      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':p.dep?'⭐ ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+' • взнос \u{1F4B0}'+(p.don||0)+'</small></span><span class="sc">⚔ '+p.wpts+'</span>';
+      const mo2=m.me.owner,md=m.me.dep;
+      if(p.id!==UID&&!p.owner&&(mo2||(md&&!p.dep))){
+        const mk=(t,tt,fn)=>{const b=document.createElement('button');b.textContent=t;b.title=tt;b.style.marginLeft='4px';b.onclick=fn;d.appendChild(b)};
+        if(mo2)mk(p.dep?'⬇':'⭐',p.dep?'Снять зама':'Назначить замом',()=>netAct('club/deputy',{id:p.id,on:!p.dep}));
+        if(mo2)mk('\u{1F451}','Передать клуб',()=>{if(confirm('Передать клуб бойцу '+p.name+'? Ты станешь замом.'))netAct('club/owner',{id:p.id})});
+        mk('\u{1F462}','Выгнать',()=>{if(confirm('Выгнать '+p.name+' из клуба?'))netAct('club/kick',{id:p.id})});
+      }
+      L.appendChild(d)});
+    if(owner||m.me.dep)L.insertAdjacentHTML('beforeend','<div class="hint">⭐ — назначить зама (до 3), \u{1F462} — выгнать, \u{1F451} — передать клуб. Зам может выгонять обычных бойцов и начинать дела.</div>');
     L.insertAdjacentHTML('beforeend','<button class="sbtn" id="clanLeave" style="width:100%;margin-top:10px">Выйти из клуба</button>');
     $('clanLeave').onclick=()=>netAct('clan/leave');
   }else if(clubSub==='up'){
@@ -1397,6 +1412,8 @@ async function renderAdm(){
   L.innerHTML='<div class="warbox">\u{1F465} Игроков: '+st.players+' • онлайн: '+st.online+' • за сутки: '+st.day+'<br>\u{1F6E1} Клубов: '+st.clans+' • VIP: '+st.vip+' • банов: '+st.banned+'<br>⭐ Продано: '+st.payments+' платежей, '+st.stars+' Stars (сегодня '+st.starsDay+')</div>'
    +'<div class="inp"><input id="admQ" placeholder="Имя или ID"><button class="sbtn" id="admFind">Найти</button></div><div class="inp"><input id="admSay" maxlength="200" placeholder="Объявление в общий чат"><button class="sbtn" id="admSayGo">\u{1F4E2}</button></div><div id="admRes"></div>';
   $('admFind').onclick=admFind;$('admSayGo').onclick=async()=>{if(await admCall('say',{text:$('admSay').value})){$('admSay').value='';sl('Отправлено')}};
+  L.insertAdjacentHTML('beforeend','<button class="sbtn" id="admWipe" style="width:100%;margin-top:14px;background:#5a1a1a">☢ Обнулить ВСЕХ игроков</button>');
+  $('admWipe').onclick=async()=>{const t=prompt('Это удалит ВСЕХ игроков, клубы и чаты, прогресс на всех устройствах сбросится. Платежи в журнале останутся. Напиши СБРОС для подтверждения');if(t!=='СБРОС')return;const j=await admCall('reset',{confirm:t});if(j){sl('Обнулено игроков: '+j.wiped);setTimeout(()=>location.reload(),1500)}};
   admFind();
 }
 async function admFind(){

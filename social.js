@@ -78,7 +78,7 @@ function clanView(c, full) {
   const members = Object.values(db.players).filter(p => p.clan === c.id);
   const v = { id: c.id, name: c.name, pts: c.pts || 0, count: members.length, max: CL.maxMembers(c), rating: members.reduce((a, p) => a + p.rating, 0) };
   if (full) Object.assign(v, CL.extra(c, null));
-  if (full) v.members = members.sort((a, b) => (b.wpts || 0) - (a.wpts || 0)).map(p => ({ id: p.id, name: p.name, level: p.level, rating: p.rating, wpts: p.wpts || 0, owner: c.owner === p.id }));
+  if (full) v.members = members.sort((a, b) => (b.wpts || 0) - (a.wpts || 0)).map(p => ({ id: p.id, name: p.name, level: p.level, rating: p.rating, wpts: p.wpts || 0, owner: c.owner === p.id, dep: (c.deps || []).includes(p.id) }));
   return v;
 }
 function board(me) {
@@ -109,13 +109,15 @@ function handle(req, res, url, body) {
   const route = url.replace('/api/', '');
   let me = db.players[id];
   if (route === 'sync') {
+    const ep = db.epoch || 1, stale = !(body.ep == null ? ep === 1 : body.ep === ep);
+    if (stale) { if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 }; me.seen = Date.now(); return out(200, Object.assign(board(me), { reset: true, ep })); }
     if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 };
     if (body.save && typeof body.save === 'object') { const j = JSON.stringify(body.save); if (j.length < 12000) { me.save = j; me.saveTs = Date.now(); } }
     me.seen = Date.now(); if (body.prof && typeof body.prof === 'object') { const q = body.prof, L = num(q.lvl, 1, 200); me.prof = { lvl: L, hp: num(q.hp, 50, 150 + 60 * L), dmg: num(q.dmg, 0, 10 + 2 * L), crit: Math.min(.6, Math.max(0, +q.crit || 0)), dodge: Math.min(.5, Math.max(0, +q.dodge || 0)), armor: Math.min(.6, Math.max(0, +q.armor || 0)) }; }
     me.name = clean(body.name, 16) || me.name; me.level = num(body.level, 1, 200); me.rating = num(body.rating, 0, 9000); me.seed = num(body.seed, 1, 2e9) || me.seed; me.wins = num(body.wins, 0, 1e6);
     const d = num(body.warDelta, 0, 60);
     if (d && me.clan && db.clans[me.clan]) { me.wpts = (me.wpts || 0) + d; db.clans[me.clan].pts = (db.clans[me.clan].pts || 0) + d; }
-    dirty = true; return out(200, board(me));
+    dirty = true; return out(200, Object.assign(board(me), { ep: db.epoch || 1 }));
   }
   if (route === 'load' && !me) return out(200, { save: null, ts: 0 });
   if (!me) return out(400, { error: 'sync first' });
@@ -155,7 +157,8 @@ function handle(req, res, url, body) {
   if (route === 'clan/leave') {
     const c = db.clans[me.clan];
     me.clan = 0; me.wpts = 0;
-    if (c) { const rest = Object.values(db.players).filter(p => p.clan === c.id); if (!rest.length) delete db.clans[c.id]; else if (c.owner === id) c.owner = rest[0].id; }
+    if (c) { c.deps = (c.deps || []).filter(x => x !== id); if (c.raid && c.raid.ready) c.raid.ready = c.raid.ready.filter(x => x !== id);
+      const rest = Object.values(db.players).filter(p => p.clan === c.id); if (!rest.length) delete db.clans[c.id]; else if (c.owner === id) c.owner = (rest.find(p => c.deps.includes(p.id)) || rest[0]).id; }
     dirty = true; return out(200, board(me));
   }
   if (route === 'war/claim') {

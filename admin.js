@@ -57,6 +57,13 @@ module.exports = function (getDb, touch, chatPush) {
       }
       case 'admin/ban': { const p = find(body.id); if (!p) return { error: 'Игрок не найден' }; p.ban = !!body.on; touch(); return { data: { p: view(p) } }; }
       case 'admin/mute': { const p = find(body.id); if (!p) return { error: 'Игрок не найден' }; p.mute = body.min ? now + n(body.min, 0, 60 * 24 * 30) * 60e3 : 0; touch(); return { data: { p: view(p) } }; }
+      case 'admin/reset': {
+        if (body.confirm !== 'СБРОС') return { error: 'Нужно подтверждение' };
+        const n0 = all.length;
+        db.players = {}; db.clans = {}; db.nextClan = 1; db.chat = { global: [], clubs: {} }; db.dms = {}; db.lastWar = null;
+        db.epoch = (db.epoch || 1) + 1; console.log('ADMIN RESET ALL, players wiped:', n0, 'epoch', db.epoch);
+        touch(); return { data: { ok: true, wiped: n0, epoch: db.epoch } };
+      }
       case 'admin/say': {
         const t = String(body.text || '').replace(/[<>&"'`]/g, '').trim().slice(0, 200); if (!t) return { error: 'Пусто' };
         chatPush({ from: 'sys', name: '📢 Админ', text: t }); touch(); return { data: { ok: true } };
