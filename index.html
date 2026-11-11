@@ -155,6 +155,14 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .mm-top{display:flex;gap:10px;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 6px;background:linear-gradient(180deg,#1d1710,#100d09);border-bottom:2px solid #3a2c18;flex:none}
 .mm-ava{position:relative;width:62px;height:62px;border-radius:12px;border:3px solid #d9a441;box-shadow:0 0 0 2px #2a1d0a,0 0 14px rgba(217,164,65,.45);overflow:hidden;cursor:pointer;flex:none;background:#000}
 .mm-ava canvas,.mm-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.mm-x{position:absolute;left:-2px;top:-2px;font-size:10px;background:rgba(0,0,0,.75);color:#fff;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center}
+#chatOverlay{background:#0a0805}
+#chatBox{flex:1;min-height:200px;overflow-y:auto;background:#100c07;border:1.5px solid #3a2c18;border-radius:10px;padding:8px;margin-bottom:6px}
+.msg{background:#1d1710;border-radius:10px;padding:6px 10px;margin:4px 40px 4px 0;color:#eee;font-size:13px;word-break:break-word}
+.msg small{display:block;color:#b8801f;font-size:10px}
+.msg.mine{margin:4px 0 4px 40px;background:#2a2410}
+.cbar{height:8px;background:#000;border-radius:4px;margin:6px 0;overflow:hidden}.cbar i{display:block;height:100%;background:linear-gradient(90deg,#b8801f,#ffd24a)}
+.tabs.sub button{font-size:12px}
 .mm-cam{position:absolute;right:1px;bottom:1px;font-size:12px;background:rgba(0,0,0,.65);border-radius:6px;padding:0 3px}
 .mm-info{flex:1;min-width:0}.mm-row{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .mm-name{font-weight:800;font-size:16px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -301,7 +309,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="mm-top">
     <label class="mm-ava" id="mmAva" title="Нажми, чтобы вставить своё фото">
       <canvas id="mmAvaCv" width="120" height="120"></canvas><img id="mmAvaImg" alt="" style="display:none">
-      <span class="mm-cam">📷</span><input type="file" id="mmFile" accept="image/*" hidden>
+      <span class="mm-cam">📷</span><span class="mm-x" id="btnAvaReset">✕</span><input type="file" id="mmFile" accept="image/*" hidden>
     </label>
     <div class="mm-info">
       <div class="mm-row"><span class="mm-name" id="mmName">Боец</span><span class="mm-money" id="mmMoney">💰 0</span></div>
@@ -312,8 +320,8 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
   <div class="mm-stage">
     <canvas id="mmCv"></canvas>
     <div class="mm-tier" id="mmTier">Бомж</div>
-    <div class="mm-side l"><button class="mm-sb" id="btnPath"><span>🪜</span>Путь</button><button class="mm-sb" id="btnMyFighter2"><span>💪</span>Боец</button><button class="mm-sb" id="btnClan"><span>🛡️</span>Клан</button></div>
-    <div class="mm-side r"><button class="mm-sb" id="btnShop2"><span>🏪</span>Лавка</button><button class="mm-sb" id="btnAvaReset"><span>🔄</span>Фото</button><button class="mm-sb" id="btnTop"><span>🏆</span>Топ</button></div>
+    <div class="mm-side l"><button class="mm-sb" id="btnPath"><span>🪜</span>Путь</button><button class="mm-sb" id="btnMyFighter2"><span>💪</span>Боец</button><button class="mm-sb" id="btnClan"><span>🛡️</span>Клуб</button></div>
+    <div class="mm-side r"><button class="mm-sb" id="btnShop2"><span>🏪</span>Лавка</button><button class="mm-sb" id="btnChat"><span>💬</span>Чат<i class="mm-badge" id="bdC"></i></button><button class="mm-sb" id="btnTop"><span>🏆</span>Топ</button></div>
   </div>
   <div class="mm-stats"><div><b id="mmW">0</b>побед</div><div><b id="mmL">0</b>поражений</div><div><b id="mmK">0</b>нокаутов</div><div><b id="mmH">100</b>здоровье</div></div>
   <div class="mm-nav">
@@ -343,9 +351,18 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 </div>
 <div class="overlay" id="socOverlay">
   <button class="back-btn" id="socBack">← НАЗАД</button>
-  <div class="otitle">🏆 ТОП И КЛАНЫ</div>
-  <div class="tabs"><button data-st="players" class="on">Игроки</button><button data-st="clans">Кланы</button><button data-st="mine">Мой клан</button></div>
+  <div class="otitle">🏆 ТОП И КЛУБЫ</div>
+  <div class="tabs"><button data-st="players" class="on">Игроки</button><button data-st="clans">Клубы</button><button data-st="mine">Мой клуб</button></div>
   <div id="socList"></div>
+</div>
+<div class="overlay" id="chatOverlay">
+  <button class="back-btn" id="chatBack">← НАЗАД</button>
+  <div class="otitle">💬 ЧАТ</div>
+  <div class="tabs"><button data-ct="global" class="on">Общий</button><button data-ct="club">Клуб</button><button data-ct="fr">Друзья</button></div>
+  <div id="chatHead"></div>
+  <div id="chatBox"></div>
+  <div id="chatFr" style="display:none"></div>
+  <div class="inp" id="chatSend"><input id="chatIn" maxlength="200" placeholder="Сообщение…" autocomplete="off"><button class="sbtn" id="chatGo">➤</button></div>
 </div>
 <div class="overlay" id="oppOverlay">
   <button class="back-btn" id="oppBack">← НАЗАД</button>
@@ -445,10 +462,10 @@ function loadSave(){
 function saveSv(){try{localStorage.setItem('fc_save',JSON.stringify(SV));}catch(e){}}
 // ── STAT CALCULATION ──
 function getMaxHP(){
-  return C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18+sk('vit')*15+gs('hp');
+  return Math.round((C.maxHealth+(SV.level-1)*12+SV.ups.bandages*18+sk('vit')*15+gs('hp'))*(1+cb().hp/100));
 }
 function getExtraDmg(){
-  return SV.ups.gloves*3+sk('fist')*2+gs('dmg');
+  return SV.ups.gloves*3+sk('fist')*2+gs('dmg')+cb().dmg;
 }
 function getEnergyRegen(){
   return C.energyPerTurn+SV.ups.sneakers*2+Math.round(sk('rec')*1.5)+gs('reg');
@@ -462,7 +479,7 @@ function getCrit(){return .15+sk('crit')*.015+gs('crit')/100;}
 function getDodge(){return Math.min(.5,sk('dodge')*.015+gs('dodge')/100);}
 function getPierce(){return Math.min(.92,C.blockReduction+sk('pierce')*.04);}
 function getGuard(){return Math.max(.2,C.blockReduction-sk('guard')*.03);}
-function getSkin(){return Math.max(.4,1-sk('skin')*.015-gs('armor')/100);}
+function getSkin(){return Math.max(.35,1-sk('skin')*.015-gs('armor')/100-cb().armor/100);}
 
 function clubTag(){return (NET&&NET.mine&&NET.mine.name)?NET.mine.name.slice(0,8).toUpperCase():''}
 function applyLooks(oppLevel,oppSeed){try{FV.setFighterObj('left',Hero.fighterFor(SV.level,SV.seed,gearVis(),clubTag()));FV.setFighterObj('right',Hero.fighterFor(oppLevel,oppSeed,null,''));}catch(e){console.error('looks',e)}}
@@ -500,7 +517,7 @@ const GEAR=[
 ].map(a=>({slot:a[0],id:a[1],name:a[2],icon:a[3],r:a[4],lvl:Math.max(1,Math.round(a[5]*1.7)),price:Math.round(a[6]*({c:6,r:10,e:14,l:18}[a[4]])/10)*10,st:a[7],vis:a[8]}));
 const GEARBY={};GEAR.forEach(g=>GEARBY[g.id]=g);
 function gs(k){let v=0;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id])v+=g.st[k]||0}return v;}
-function gearVis(){const o={};let any=false;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id]){Object.assign(o,g.vis);any=true}}return any?o:null;}
+function gearVis(){const o={};let any=false;for(const sl in SV.eq){const g=GEARBY[SV.eq[sl]];if(g&&SV.inv[g.id]){Object.assign(o,g.vis);any=true}}if(o.club)o.clubText=clubTag();return any?o:null;}
 let shopTab='gear',gearSlot='head';
 function stChips(st){return Object.keys(st).map(k=>'<span class="chip">'+STN[k][0]+' +'+st[k]+STN[k][2]+'</span>').join('');}
 function renderGear(){
@@ -512,7 +529,7 @@ function renderGear(){
   const bar=document.createElement('div');bar.className='slotbar';
   SLOTS.forEach(sl=>{const b=document.createElement('button');b.className=gearSlot===sl[0]?'on':'';const e=GEARBY[SV.eq[sl[0]]];b.innerHTML=sl[1].split(' ')[0]+'<small>'+(e&&SV.inv[e.id]?'✓':'')+'</small>';b.onclick=()=>{gearSlot=sl[0];renderGear()};bar.appendChild(b)});
   list.appendChild(bar);
-  GEAR.filter(g=>g.slot===gearSlot).forEach(g=>{
+  GEAR.concat(CLUBGEAR).filter(g=>g.slot===gearSlot).forEach(g=>{
     const own=!!SV.inv[g.id],worn=SV.eq[g.slot]===g.id&&own,locked=SV.level<g.lvl;
     const d=document.createElement('div');d.className='gitem'+(worn?' worn':'')+(locked&&!own?' lock':'');d.style.borderColor=RAR[g.r][1];
     d.innerHTML='<div class="gic">'+g.icon+'</div><div class="gtx"><b>'+g.name+'</b><small style="color:'+RAR[g.r][1]+'">'+RAR[g.r][0]+'</small><div>'+stChips(g.st)+'</div></div>';
@@ -783,7 +800,7 @@ document.addEventListener('click',(e)=>{
   if(false){}
   else if(id==='btnPath'){mo.classList.remove('show');renderPath();$('pathOverlay').classList.add('show');}
   else if(id==='pathBack'){$('pathOverlay').classList.remove('show');mo.classList.add('show');}
-  else if(id==='btnAvaReset'){try{localStorage.removeItem('fc_avatar')}catch(e){}refreshMenu();}
+  else if(id==='btnAvaReset'){e.preventDefault();try{localStorage.removeItem('fc_avatar')}catch(e){}refreshMenu();}
   else if(t.id==='btnFight'){mo.classList.remove('show');renderOpponents();oo.classList.add('show');}
   else if(id==='btnMyFighter'){mo.classList.remove('show');renderFighter();fo.classList.add('show');}
   else if(id==='btnShop'){mo.classList.remove('show');renderShop();so.classList.add('show');}
@@ -999,7 +1016,7 @@ function yday(){const d=new Date();d.setDate(d.getDate()-1);return dstr(d);}
 // rewards
 function norm(r,k){k=k||.4;return {money:Math.round(((r.money||0)+(r.sp||0)*250)*k),xp:Math.round((r.xp||0)*k*1.5),en:r.en||0};}
 function giveReward(r){
-  if(r.money)SV.money+=r.money;if(r.xp)addXp(r.xp);if(r.en){const e=enTick();e.v=Math.min(EN_MAX+10,e.v+r.en);}saveSv();
+  if(r.money)SV.money+=Math.round(r.money*(1+cb().coin/100));if(r.xp)addXp(r.xp);if(r.en){const e=enTick();e.v=Math.min(EN_MAX+10,e.v+r.en);}saveSv();
 }
 function rewardTxt(r){return [r.money?'\u{1F4B0}'+r.money:'',r.xp?'\u2b50'+r.xp:'',r.en?'\u26a1'+r.en:''].filter(Boolean).join(' ');}
 // daily missions
@@ -1118,7 +1135,7 @@ document.addEventListener('click',e=>{
 });
 
 
-// ── ONLINE: лидеры, кланы, клановые войны ──
+// ── ONLINE: лидеры, клубы, клубовые войны ──
 const API_BASE=SERVER_URL.replace(/^ws/,'http');
 let UID=null,NET=null,netErr=false,lastSync=0,socTab='players';
 try{const T=window.Telegram&&Telegram.WebApp,u=T&&T.initDataUnsafe&&T.initDataUnsafe.user;
@@ -1137,7 +1154,7 @@ async function restoreFromServer(){
 async function syncNow(force){
   if(!force&&Date.now()-lastSync<20000)return;lastSync=Date.now();
   const d=Math.min(60,SV.war||0);
-  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;saveSv();netErr=false;}
+  try{NET=await api('sync',{name:P.name,level:SV.level,rating:SV.rating,seed:SV.seed,wins:SV.wins,warDelta:d,prof:{lvl:SV.level,hp:getMaxHP(),dmg:getExtraDmg(),crit:getCrit(),dodge:getDodge(),armor:1-getSkin()},save:isFresh()?undefined:SV});SV.war=(SV.war||0)-d;syncClubGear();saveSv();netErr=false;}
   catch(e){netErr=true;}
   if($('socOverlay').classList.contains('show'))renderSoc();
 }
@@ -1148,33 +1165,97 @@ function renderSoc(){
   const L=$('socList');L.innerHTML='';
   document.querySelectorAll('[data-st]').forEach(b=>b.classList.toggle('on',b.dataset.st===socTab));
   if(!NET){L.innerHTML='<div class="hint">'+(netErr?'Нет связи с сервером. Попробуй позже.':'Загрузка…')+'</div>';return}
-  const me='';
+  syncClubGear();
   if(socTab==='players'){
     L.insertAdjacentHTML('beforeend','<div class="hint">Твоё место: <b style="color:#ffd24a">#'+NET.rank+'</b> из '+NET.total+'</div>');
-    NET.players.forEach(p=>{const mine=p.id===UID;L.insertAdjacentHTML('beforeend','<div class="row'+(mine?' me':'')+'"><span class="pl">'+(p.place<=3?['\u{1F947}','\u{1F948}','\u{1F949}'][p.place-1]:p.place)+'</span><span class="nm">'+p.name+'<small>ур. '+p.level+(p.clan?' • \u{1F6E1} '+p.clan:'')+'</small></span><span class="sc">\u{1F3C6} '+p.rating+'</span></div>')});
+    NET.players.forEach(p=>{const mine=p.id===UID;const d=document.createElement('div');d.className='row'+(mine?' me':'');
+      d.innerHTML='<span class="pl">'+(p.place<=3?['\u{1F947}','\u{1F948}','\u{1F949}'][p.place-1]:p.place)+'</span><span class="nm">'+p.name+'<small>ур. '+p.level+(p.clan?' • \u{1F6E1} '+p.clan:'')+'</small></span><span class="sc">\u{1F3C6} '+p.rating+'</span>';
+      if(!mine&&!p.fr){const b=document.createElement('button');b.textContent='➕';b.title='В друзья';b.onclick=async()=>{try{const j=await api('friend/add',{q:p.id});sl(j.note||'Готово');p.fr=true;renderSoc()}catch(e){sl('⚠ '+e.message)}};d.appendChild(b)}
+      L.appendChild(d)});
   }else if(socTab==='clans'){
     const last=NET.war.last;
-    L.insertAdjacentHTML('beforeend','<div class="warbox">⚔️ Клановая война недели<b>'+(last&&last.top.length?'Прошлая неделя: \u{1F947} '+last.top[0].name:'Набирай очки победами')+'</b>Топ-3 клана получают награду в понедельник</div>');
-    if(!NET.clans.length)L.insertAdjacentHTML('beforeend','<div class="hint">Кланов пока нет. Создай первый!</div>');
+    L.insertAdjacentHTML('beforeend','<div class="warbox">⚔️ Война клубов недели<b>'+(last&&last.top.length?'Прошлая неделя: \u{1F947} '+last.top[0].name:'Набирай очки победами')+'</b>Топ-3 клуба получают награду в понедельник</div>');
+    if(!NET.clans.length)L.insertAdjacentHTML('beforeend','<div class="hint">Клубов пока нет. Создай первый!</div>');
     NET.clans.forEach((c,i)=>{const d=document.createElement('div');d.className='row'+(NET.mine&&NET.mine.id===c.id?' me':'');
-      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">\u{1F6E1} '+c.name+'<small>'+c.count+'/'+c.max+' бойцов</small></span><span class="sc">⚔ '+c.pts+'</span>';
+      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">\u{1F6E1} '+c.name+'<small>ур. '+(c.lvl||1)+' • '+c.count+'/'+c.max+' бойцов</small></span><span class="sc">⚔ '+c.pts+'</span>';
       if(!NET.mine&&c.count<c.max){const b=document.createElement('button');b.textContent='Вступить';b.onclick=()=>netAct('clan/join',{id:c.id});d.appendChild(b);}
       L.appendChild(d)});
-  }else{
-    const m=NET.mine;
-    if(!m){
-      L.insertAdjacentHTML('beforeend','<div class="hint">Ты пока без клана. Вступи в чужой на вкладке «Кланы» или создай свой за \u{1F4B0}500</div><div class="inp"><input id="clanName" maxlength="18" placeholder="Название клана"><button class="sbtn" id="clanMake">Создать</button></div>');
-      $('clanMake').onclick=async()=>{if(SV.money<500){sl('Нужно \u{1F4B0}500');return}if(await netAct('clan/create',{name:$('clanName').value})){SV.money-=500;saveSv();refreshMenu();}};
-      return;
-    }
-    L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F6E1} '+m.name+'<b>⚔ '+m.pts+' очков недели</b>Очки: победа на лестнице +1, босс +3, победа в PvP +5</div>');
+  }else renderClub(L);
+}
+let clubSub='info';
+function renderClub(L){
+  const m=NET.mine;
+  if(!m){
+    L.insertAdjacentHTML('beforeend','<div class="hint">Ты пока без клуба. Вступи в чужой на вкладке «Клубы» или создай свой за \u{1F4B0}500</div><div class="inp"><input id="clanName" maxlength="18" placeholder="Название клуба"><button class="sbtn" id="clanMake">Создать</button></div>');
+    $('clanMake').onclick=async()=>{if(SV.money<500){sl('Нужно \u{1F4B0}500');return}if(await netAct('clan/create',{name:$('clanName').value})){SV.money-=500;saveSv();refreshMenu();}};
+    return;
+  }
+  const owner=m.me&&m.me.owner,B=m.bonus;
+  const subs=[['info','Обзор'],['raid','Дела'],['up','Улучшения'],['shop','Магазин']];
+  L.insertAdjacentHTML('beforeend','<div class="tabs sub">'+subs.map(s=>'<button data-cs="'+s[0]+'" class="'+(clubSub===s[0]?'on':'')+'">'+s[1]+'</button>').join('')+'</div>');
+  L.querySelectorAll('[data-cs]').forEach(b=>b.onclick=()=>{clubSub=b.dataset.cs;renderSoc()});
+  const pct=Math.round(cl((m.xp-m.xpPrev)/(m.xpNext-m.xpPrev)*100,0,100));
+  L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F6E1} '+m.name+' • ур. '+m.lvl+'<b>⚔ '+m.pts+' очков недели</b><div class="cbar"><i style="width:'+pct+'%"></i></div>Опыт клуба '+m.xp+' / '+m.xpNext+'<br>Бонусы: ❤️+'+B.hp+'% \u{1F4AA}+'+B.dmg+' \u{1F6E1}+'+B.armor+'% \u{1F4B0}+'+B.coin+'%<br>Клубные монеты: \u{1FA99} '+m.me.cc+' • Казна: \u{1F4B0} '+m.bank+'</div>');
+  if(clubSub==='info'){
     if(NET.reward){const r=NET.reward;L.insertAdjacentHTML('beforeend','<button class="sbtn" id="warClaim" style="width:100%;padding:12px;margin-bottom:10px;font-size:15px">\u{1F381} Награда за войну: место '+r.place+' — \u{1F4B0}'+r.money+' \u{1F9EC}'+r.sp+'</button>');
       $('warClaim').onclick=async()=>{try{const j=await api('war/claim');giveReward(norm({money:j.reward.money,sp:j.reward.sp},.4));sl('\u{1F381} Награда получена!');await syncNow(true);refreshMenu();}catch(e){sl('⚠ '+e.message)}};}
-    m.members.forEach((p,i)=>L.insertAdjacentHTML('beforeend','<div class="row'+(p.id===UID?' me':'')+'"><span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+'</small></span><span class="sc">⚔ '+p.wpts+'</span></div>'));
-    L.insertAdjacentHTML('beforeend','<button class="sbtn" id="clanLeave" style="width:100%;margin-top:10px">Выйти из клана</button>');
+    m.members.forEach((p,i)=>{const d=document.createElement('div');d.className='row'+(p.id===UID?' me':'');
+      d.innerHTML='<span class="pl">'+(i+1)+'</span><span class="nm">'+(p.owner?'\u{1F451} ':'')+p.name+'<small>ур. '+p.level+' • \u{1F3C6} '+p.rating+' • взнос \u{1F4B0}'+(p.don||0)+'</small></span><span class="sc">⚔ '+p.wpts+'</span>';L.appendChild(d)});
+    L.insertAdjacentHTML('beforeend','<button class="sbtn" id="clanLeave" style="width:100%;margin-top:10px">Выйти из клуба</button>');
     $('clanLeave').onclick=()=>netAct('clan/leave');
+  }else if(clubSub==='up'){
+    L.insertAdjacentHTML('beforeend','<div class="hint">Все вносят деньги в казну, улучшения покупает глава клуба. Бонусы получают все члены.</div><div class="inp"><input id="donAmt" type="number" min="1" placeholder="Сумма взноса"><button class="sbtn" id="donGo">Внести</button></div>');
+    $('donGo').onclick=async()=>{const a=Math.floor(+$('donAmt').value||0);if(a<1||a>SV.money){sl('Не хватает монет');return}if(await netAct('club/donate',{amount:a})){SV.money-=a;saveSv();refreshMenu();sl('Внесено \u{1F4B0}'+a)}};
+    const UPN={gym:['\u{1F3CB}️','Качалка','+1.5% здоровья'],spar:['\u{1F94A}','Спарринг-зал','+1 урона'],guard:['\u{1F6E1}️','Охрана','+0.8% брони'],till:['\u{1F4B0}','Касса','+5% монет']};
+    Object.keys(UPN).forEach(k=>{const u=UPN[k],n=m.up[k],c=m.upCost[k],d=document.createElement('div');d.className='row';
+      d.innerHTML='<span class="pl">'+u[0]+'</span><span class="nm">'+u[1]+' ур. '+n+'/10<small>'+u[2]+' за уровень</small></span>';
+      const b=document.createElement('button');if(!c){b.textContent='MAX';b.disabled=true}else{b.textContent='\u{1F4B0}'+c;b.disabled=!owner||m.bank<c;b.onclick=()=>netAct('club/upgrade',{k})}d.appendChild(b);L.appendChild(d)});
+    if(!owner)L.insertAdjacentHTML('beforeend','<div class="hint">Улучшать может только глава ('+((m.members.find(x=>x.owner)||{}).name||'')+').</div>');
+  }else if(clubSub==='shop'){
+    L.insertAdjacentHTML('beforeend','<div class="hint">Вещи с названием клуба. Работают, пока ты в клубе. Монеты \u{1FA99} дают за клубные дела.</div>');
+    m.shop.forEach(s=>{const d=document.createElement('div');d.className='row';
+      d.innerHTML='<span class="pl">'+s.icon+'</span><span class="nm">'+s.name+'<small>'+stChips2(s.st)+(s.open?'':' • нужен ур. клуба '+s.min)+'</small></span>';
+      const b=document.createElement('button');if(s.owned){b.textContent='Куплено';b.disabled=true}else{b.textContent='\u{1FA99}'+s.price;b.disabled=!s.open||m.me.cc<s.price;b.onclick=async()=>{if(await netAct('club/shop',{id:s.id})){syncClubGear();sl('✓ '+s.name+' — надень во вкладке «Магазин → Вещи»')}}}
+      d.appendChild(b);L.appendChild(d)});
+  }else{
+    const r=m.raid;
+    if(NET.result)showRaidRes(NET.result,L);
+    else if(r.last)showRaidRes(r.last,L,true);
+    if(r.st==='gather'){
+      const rd=m.raids[r.type],mine=r.ready.includes(UID);
+      L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F4E2} Сбор: «'+rd.name+'»<b>Готовы: '+r.ready.length+' / '+r.need+'</b>'+rd.desc+'<br>Рекомендуемый уровень: '+rd.rec+'. Как соберётся нужное число — бойцы сами идут в бой с боссом.</div>');
+      const names=r.ready.map(id=>(m.members.find(x=>x.id===id)||{}).name||'?').join(', ');
+      L.insertAdjacentHTML('beforeend','<div class="hint">Готовы: '+names+'</div><button class="sbtn" id="rdReady" style="width:100%;padding:12px;font-size:15px">'+(mine?'✖ Не готов':'✅ ГОТОВ')+'</button>');
+      $('rdReady').onclick=async()=>{await syncNow(true);if(await netAct('raid/ready'))if(NET.result)renderSoc()};
+      if(owner&&r.ready.length>=2)L.insertAdjacentHTML('beforeend','<button class="sbtn" id="rdGo" style="width:100%;margin-top:8px">⚔ Начать сейчас ('+r.ready.length+' бойцов)</button>');
+      if($('rdGo'))$('rdGo').onclick=()=>netAct('raid/start');
+    }else if(r.st==='cooldown'){
+      const ms=Math.max(0,r.until-Date.now());L.insertAdjacentHTML('beforeend','<div class="hint">\u{1F634} Клуб отдыхает после дела. Следующее через '+Math.floor(ms/3600000)+'ч '+Math.floor(ms/60000)%60+'м. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
+    }else{
+      L.insertAdjacentHTML('beforeend','<div class="hint">Объяви сбор — любой член клуба. Нужно '+r.need+' бойцов. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
+      m.raids.forEach(rd=>{const d=document.createElement('div');d.className='row';
+        d.innerHTML='<span class="pl">\u{1F608}</span><span class="nm">'+rd.name+'<small>рек. ур. '+rd.rec+' • \u{1FA99}'+rd.cc+' • опыт клуба '+rd.xp+(rd.open?'':' • нужен ур. клуба '+rd.min)+'</small></span>';
+        const b=document.createElement('button');b.textContent='Сбор';b.disabled=!rd.open;b.onclick=async()=>{await syncNow(true);netAct('raid/open',{type:rd.id})};d.appendChild(b);L.appendChild(d)});
+    }
   }
 }
+function stChips2(st){return Object.keys(st).map(k=>STN[k][0]+'+'+st[k]+STN[k][2]).join(' ')}
+function showRaidRes(res,L,old){
+  const rd=NET.mine&&NET.mine.raids[res.raid]||{name:'Дело'};
+  L.insertAdjacentHTML('beforeend','<div class="warbox" style="border-color:'+(res.win?'#3fb04a':'#c0392b')+'">'+(old?'Прошлое дело: ':'')+rd.name+'<b>'+(res.win?'\u{1F3C6} ПОБЕДА! Босс повержен':'\u{1F480} Босс оказался сильнее')+'</b>'+res.log.join('<br>')+'<br><br>'+res.team.map(t=>(t.alive?'':'\u{1F480} ')+t.name+': '+t.dealt+' урона').join('<br>')+'</div>');
+}
+// ── клубные вещи: регистрируем купленное в общем каталоге ──
+function clubColor(){const s=(NET&&NET.mine&&NET.mine.name)||'';let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return 'hsl('+(h%360)+',55%,38%)'}
+let CLUBGEAR=[];
+function syncClubGear(){
+  const own=[],mine=NET&&NET.mine;
+  if(mine&&NET.me)(mine.shop||[]).forEach(s=>{if(!s.owned)return;const vis=Object.assign({},s.vis);if(vis.shirtCol==='club')vis.shirtCol=clubColor();if(vis.hat==='club')vis.hat=clubColor();
+    const g={slot:s.slot,id:s.id,name:s.name,icon:s.icon,r:'e',lvl:1,price:0,st:s.st,vis};GEARBY[s.id]=g;SV.inv[s.id]=true;own.push(g)});
+  CLUBGEAR=own;
+  if(NET&&(mine||NET.me))for(const k of Object.keys(SV.inv))if(k.startsWith('cs_')&&!own.find(g=>g.id===k)){delete SV.inv[k];for(const sl in SV.eq)if(SV.eq[sl]===k)delete SV.eq[sl]}
+}
+// ── бонусы клуба ──
+function cb(){return(NET&&NET.mine&&NET.mine.bonus)||{hp:0,dmg:0,armor:0,coin:0}}
 function openSoc(tab){mo.classList.remove('show');socTab=tab;$('socOverlay').classList.add('show');renderSoc();syncNow(true);}
 document.addEventListener('click',e=>{
   const t=e.target,id=t.id;
@@ -1183,6 +1264,56 @@ document.addEventListener('click',e=>{
   else if(t.dataset&&t.dataset.sh){shopTab=t.dataset.sh;renderShop();}
   else if(t.dataset&&t.dataset.st){socTab=t.dataset.st;renderSoc();}
 });
+
+
+// ── ЧАТ, ДРУЗЬЯ, ЛИЧНЫЕ СООБЩЕНИЯ ──
+let chTab='global',chWith=null,chLast=0,chTimer=0,chFr=null;
+const esc=t=>String(t).replace(/[<>&"]/g,'');
+function chatOpen(){mo.classList.remove('show');$('chatOverlay').classList.add('show');chTab=chTab==='dm'&&!chWith?'global':chTab;chRender();chStart()}
+function chStart(){clearInterval(chTimer);chTimer=setInterval(()=>{if(!$('chatOverlay').classList.contains('show')){clearInterval(chTimer);return}chPoll()},3000)}
+function chRender(){
+  document.querySelectorAll('[data-ct]').forEach(b=>b.classList.toggle('on',b.dataset.ct===(chTab==='dm'?'fr':chTab)));
+  chLast=0;$('chatBox').innerHTML='';
+  const fr=chTab==='fr';$('chatSend').style.display=fr?'none':'flex';$('chatBox').style.display=fr?'none':'block';$('chatFr').style.display=fr?'block':'none';
+  $('chatHead').innerHTML=chTab==='dm'?'<button class="sbtn" id="dmBack">←</button> <b>'+esc(chWith.name)+'</b>':'';
+  if(fr){frRender();return}
+  chPoll();
+}
+async function chPoll(){
+  if(chTab==='fr')return;
+  try{
+    const j=chTab==='dm'?await api('dm/get',{with:chWith.id,after:chLast}):await api('chat/get',{room:chTab,after:chLast});
+    const box=$('chatBox'),bot=box.scrollHeight-box.scrollTop-box.clientHeight<60||!chLast;
+    j.msgs.forEach(m=>{if(m.id<=chLast)return;chLast=m.id;const mine=m.from===j.me;
+      box.insertAdjacentHTML('beforeend','<div class="msg'+(mine?' mine':'')+'"><small>'+esc(m.name)+(m.lvl?' • ур.'+m.lvl:'')+'</small>'+esc(m.text)+'</div>')});
+    if(bot)box.scrollTop=box.scrollHeight;
+  }catch(e){}
+}
+async function chSend(){
+  const i=$('chatIn'),t=i.value.trim();if(!t)return;
+  try{if(chTab==='dm')await api('dm/send',{to:chWith.id,text:t});else await api('chat/send',{room:chTab,text:t});i.value='';chPoll()}catch(e){sl('⚠ '+e.message)}
+}
+async function frRender(){
+  const L=$('chatFr');
+  try{chFr=await api('friend/list')}catch(e){L.innerHTML='<div class="hint">Нет связи</div>';return}
+  L.innerHTML='<div class="inp"><input id="frQ" maxlength="40" placeholder="Имя или ID игрока"><button class="sbtn" id="frAdd">Добавить</button></div>';
+  if(chFr.requests.length){L.insertAdjacentHTML('beforeend','<div class="hint">Заявки в друзья</div>');
+    chFr.requests.forEach(r=>{const d=document.createElement('div');d.className='row';d.innerHTML='<span class="nm">'+esc(r.name)+'<small>ур. '+r.level+'</small></span>';
+      const a=document.createElement('button');a.textContent='✓';a.onclick=async()=>{await api('friend/accept',{id:r.id});frRender()};const x=document.createElement('button');x.textContent='✕';x.style.background='#7a2b2b';x.onclick=async()=>{await api('friend/decline',{id:r.id});frRender()};d.append(a,x);L.appendChild(d)})}
+  if(!chFr.friends.length)L.insertAdjacentHTML('beforeend','<div class="hint">Друзей пока нет. Добавь по имени или нажми ➕ в рейтинге.</div>');
+  chFr.friends.forEach(f=>{const d=document.createElement('div');d.className='row';
+    d.innerHTML='<span class="pl">'+(f.online?'\u{1F7E2}':'⚪')+'</span><span class="nm">'+esc(f.name)+'<small>ур. '+f.level+' • \u{1F3C6} '+f.rating+'</small></span>'+(f.unread?'<span class="sc">✉ '+f.unread+'</span>':'');
+    const b=document.createElement('button');b.textContent='Написать';b.onclick=()=>{chWith=f;chTab='dm';chRender()};d.appendChild(b);L.appendChild(d)});
+  $('frAdd').onclick=async()=>{try{const j=await api('friend/add',{q:$('frQ').value});sl(j.note||'Готово');frRender()}catch(e){sl('⚠ '+e.message)}};
+}
+document.addEventListener('click',e=>{const t=e.target,id=t.id;
+  if(id==='btnChat')chatOpen();
+  else if(id==='chatBack'){clearInterval(chTimer);$('chatOverlay').classList.remove('show');mo.classList.add('show');refreshMenu()}
+  else if(t.dataset&&t.dataset.ct){chTab=t.dataset.ct;chRender()}
+  else if(id==='dmBack'){chTab='fr';chRender()}
+  else if(id==='chatGo')chSend();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='chatIn')chSend()});
 
 // ── MAIN MENU ──
 setInterval(()=>{try{if(mo.classList.contains('show')){$('mmEn').textContent=enTxt()}}catch(e){}},1000);
@@ -1193,6 +1324,7 @@ function getAvatar(){try{return localStorage.getItem('fc_avatar')}catch(e){retur
 function refreshMenu(){
   try{$('mmEn').textContent=enTxt()}catch(e){}
   try{syncNow()}catch(e){}
+  try{const u=(NET&&NET.me)?NET.me.unread+NET.me.reqs:0,b=$('bdC');b.textContent=u;b.style.display=u?'block':'none'}catch(e){}
   try{const q=claimableCount(),b=$('bdQ');b.textContent=q;b.style.display=q?'block':'none';const sp=SV.sp||0,b2=$('bdS');b2.textContent=sp;b2.style.display=sp?'block':'none';}catch(e){console.error(e)}
   const r=SV.rating||1000,li=leagueOf(r),nx=LEAGUES[li+1];
   $('mmName').textContent=P.name;$('mmMoney').textContent='💰 '+SV.money;$('mmLv').textContent=SV.level;
