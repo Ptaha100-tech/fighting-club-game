@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const FILE = path.join(process.env.DATA_DIR || __dirname, 'social-data.json');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const MAX_MEMBERS = 20;
-let CL = null, PAY = null;
+let CL = null, PAY = null, ADM = null;
 let db = { players: {}, clans: {}, nextClan: 1, lastWar: null };
 // Хранилище: Supabase (SUPABASE_URL + SUPABASE_KEY) -> иначе JSON-файл. Одна строка game_state(id=1,data jsonb).
 function normUrl(u) { u = String(u || '').trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { return new URL(u).origin; } catch (e) { return ''; } }
@@ -58,6 +58,7 @@ rollWeek(); setInterval(rollWeek, 60000);
 CL = require('./club')(() => db, () => { dirty = true; });
 PAY = require('./pay')(() => db, () => { dirty = true; });
 readyP.then(() => PAY.setup());
+ADM = require('./admin')(() => db, () => { dirty = true; }, m => { db.chat = db.chat || { global: [], clubs: {} }; m.id = Date.now() * 1000 + Math.floor(Math.random() * 1000); m.t = Date.now(); db.chat.global.push(m); if (db.chat.global.length > 80) db.chat.global.shift(); });
 
 function verify(initData) {
   if (!BOT_TOKEN) return true;
@@ -95,7 +96,7 @@ function board(me) {
   return { players: all.slice(0, 50).map((p, i) => ({ place: i + 1, id: p.id, name: p.name, level: p.level, rating: p.rating, seed: p.seed, clan: p.clan && db.clans[p.clan] ? db.clans[p.clan].name : '', fr: !!(me && (me.friends || []).includes(p.id)) })),
     today: new Date().toISOString().slice(0, 10), login: me ? { last: (me.login || {}).last || '', streak: (me.login || {}).streak || 0, days: (me.login || {}).days || 0 } : null,
     total: all.length, rank, clans, mine, war: { week: db.war.week, last: db.lastWar }, reward,
-    me: me ? { w: PAY.wallet(me), cc: me.cc || 0, cinv: me.cinv || {}, unread, reqs: (me.reqIn || []).length } : null };
+    me: me ? { mail: me.mail || null, w: PAY.wallet(me), cc: me.cc || 0, cinv: me.cinv || {}, unread, reqs: (me.reqIn || []).length } : null };
 }
 
 function handle(req, res, url, body) {
@@ -119,6 +120,11 @@ function handle(req, res, url, body) {
   if (route === 'load' && !me) return out(200, { save: null, ts: 0 });
   if (!me) return out(400, { error: 'sync first' });
   me.seen = Date.now();
+  if (me.ban) return out(403, { error: 'Аккаунт заблокирован' });
+  const isAdm = ADM.isAdminReq(req.headers['x-init'] || '') && id === 'tg' + ADM.ADMIN_TG;
+  if (route.startsWith('admin/')) { if (!isAdm) return out(403, { error: 'Нет доступа' }); const r = ADM.route(route, body); if (!r) return out(404, { error: 'unknown' }); return r.error ? out(400, { error: r.error }) : out(200, r.data); }
+  if (route === 'mail/claim') { const m = me.mail; me.mail = null; dirty = true; return out(200, { mail: m || null }); }
+  if (route === 'ping') return out(200, { adm: isAdm });
   const pr = PAY.route(route, me, body);
   if (pr) { if (pr.error) return out(400, { error: pr.error }); if (pr.async) { pr.async.then(d => out(200, d), e => out(400, { error: 'Не удалось создать счёт' })); return; } return out(200, pr.data); }
   const cr = CL.route(route, me, body);
