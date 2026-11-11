@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const FILE = path.join(process.env.DATA_DIR || __dirname, 'social-data.json');
 const BOT_TOKEN = process.env.BOT_TOKEN || '';
 const MAX_MEMBERS = 20;
-let CL = null;
+let CL = null, PAY = null;
 let db = { players: {}, clans: {}, nextClan: 1, lastWar: null };
 // Хранилище: Supabase (SUPABASE_URL + SUPABASE_KEY) -> иначе JSON-файл. Одна строка game_state(id=1,data jsonb).
 function normUrl(u) { u = String(u || '').trim(); if (!u) return ''; if (!/^https?:\/\//i.test(u)) u = 'https://' + u; try { return new URL(u).origin; } catch (e) { return ''; } }
@@ -56,6 +56,8 @@ function rollWeek() {
 }
 rollWeek(); setInterval(rollWeek, 60000);
 CL = require('./club')(() => db, () => { dirty = true; });
+PAY = require('./pay')(() => db, () => { dirty = true; });
+readyP.then(() => PAY.setup());
 
 function verify(initData) {
   if (!BOT_TOKEN) return true;
@@ -93,7 +95,7 @@ function board(me) {
   return { players: all.slice(0, 50).map((p, i) => ({ place: i + 1, id: p.id, name: p.name, level: p.level, rating: p.rating, seed: p.seed, clan: p.clan && db.clans[p.clan] ? db.clans[p.clan].name : '', fr: !!(me && (me.friends || []).includes(p.id)) })),
     today: new Date().toISOString().slice(0, 10), login: me ? { last: (me.login || {}).last || '', streak: (me.login || {}).streak || 0, days: (me.login || {}).days || 0 } : null,
     total: all.length, rank, clans, mine, war: { week: db.war.week, last: db.lastWar }, reward,
-    me: me ? { cc: me.cc || 0, cinv: me.cinv || {}, unread, reqs: (me.reqIn || []).length } : null };
+    me: me ? { w: PAY.wallet(me), cc: me.cc || 0, cinv: me.cinv || {}, unread, reqs: (me.reqIn || []).length } : null };
 }
 
 function handle(req, res, url, body) {
@@ -117,6 +119,8 @@ function handle(req, res, url, body) {
   if (route === 'load' && !me) return out(200, { save: null, ts: 0 });
   if (!me) return out(400, { error: 'sync first' });
   me.seen = Date.now();
+  const pr = PAY.route(route, me, body);
+  if (pr) { if (pr.error) return out(400, { error: pr.error }); if (pr.async) { pr.async.then(d => out(200, d), e => out(400, { error: 'Не удалось создать счёт' })); return; } return out(200, pr.data); }
   const cr = CL.route(route, me, body);
   if (cr) { if (cr.error) return out(400, { error: cr.error }); if (cr.board) return out(200, Object.assign(board(me), cr.result ? { result: cr.result } : {})); return out(200, cr.data); }
   if (route === 'board') return out(200, board(me));
@@ -167,4 +171,4 @@ function middleware(req, res) {
   req.on('end', () => { let b = {}; try { b = JSON.parse(raw || '{}'); } catch (e) {} readyP.then(() => { try { handle(req, res, url, b); } catch (e) { console.error(e); res.writeHead(500); res.end('{}'); } }); });
   return true;
 }
-module.exports = { middleware, _db: () => db };
+module.exports = { webhook: (q, r) => PAY.webhook(q, r), middleware, _db: () => db };
