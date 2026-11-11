@@ -1168,6 +1168,7 @@ async function restoreFromServer(){
 function wipeLocal(n){
   // сервер начал игру с нуля: сбрасываем локальный прогресс и берём новую эпоху
   try{localStorage.removeItem('fc_save');localStorage.setItem('fc_ep',String(n.ep||0))}catch(e){}
+  if(isFresh()){NET=null;lastSync=0;setTimeout(()=>syncNow(true),100);return}
   SV={...DEF_SAVE};try{saveSv()}catch(e){}
   NET=null;lastSync=0;sl('\u{1F504} Сервер обнулён, начинаем с нуля!');setTimeout(()=>location.reload(),1200);
 }

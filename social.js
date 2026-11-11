@@ -109,7 +109,7 @@ function handle(req, res, url, body) {
   const route = url.replace('/api/', '');
   let me = db.players[id];
   if (route === 'sync') {
-    const ep = db.epoch || 1, stale = !(body.ep == null ? ep === 1 : body.ep === ep);
+    const ep = db.epoch || 1, stale = !(body.ep == null ? ep === 1 : Number(body.ep) === ep);
     if (stale) { if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 }; me.seen = Date.now(); return out(200, Object.assign(board(me), { reset: true, ep })); }
     if (!me) me = db.players[id] = { id, name: 'Боец', level: 1, rating: 1000, seed: 1, wins: 0, wpts: 0, clan: 0 };
     if (body.save && typeof body.save === 'object') { const j = JSON.stringify(body.save); if (j.length < 12000) { me.save = j; me.saveTs = Date.now(); } }
