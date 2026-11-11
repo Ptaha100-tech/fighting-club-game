@@ -241,7 +241,7 @@ body{color:#eee;font-family:'Segoe UI',Tahoma,Arial,sans-serif;display:flex;just
 .row.me{border-color:#ffd24a;background:#241c0c}
 .row .pl{width:28px;text-align:center;font-weight:900;color:#ffd24a}
 .row .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff}
-.row .nm small{display:block;font-weight:500;color:#998;font-size:11px}
+.row .nm small{white-space:normal;display:block;font-weight:500;color:#998;font-size:11px}
 .row .sc{font-weight:800;color:#ffd24a;white-space:nowrap}
 .row button{border:0;border-radius:8px;background:linear-gradient(180deg,#3fb04a,#1f7a2b);color:#fff;font-weight:800;padding:6px 12px;font-family:inherit;cursor:pointer}
 .warbox{background:linear-gradient(180deg,#2a1608,#140b05);border:2px solid #b8801f;border-radius:12px;padding:10px;margin-bottom:10px;text-align:center;color:#f1dcae;font-size:13px}
@@ -1249,26 +1249,33 @@ function renderClub(L){
       d.appendChild(b);L.appendChild(d)});
   }else{
     const r=m.raid;
-    if(NET.result)showRaidRes(NET.result,L);
-    else if(r.last)showRaidRes(r.last,L,true);
-    if(r.st==='gather'){
+    if(r.last&&r.st!=='run')showRaidRes(r.last,L,true);
+    if(r.st==='run'){
+      const rd=m.raids[r.type],mine=r.team.includes(UID);
+      const names=r.team.map(id=>(m.members.find(x=>x.id===id)||{}).name||'?').join(', ');
+      L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F4AA} Дело идёт: «'+rd.name+'»<b class="cdt" data-u="'+(r.until-r.now+Date.now())+'">'+fmtDur(r.until-r.now)+'</b>'+rd.desc+'<br>В деле: '+names+(mine?'<br>Ты в команде, ничего делать не нужно. Результат придёт сам.':'')+'</div>');
+    }else if(r.st==='gather'){
       const rd=m.raids[r.type],mine=r.ready.includes(UID);
-      L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F4E2} Сбор: «'+rd.name+'»<b>Готовы: '+r.ready.length+' / '+r.need+'</b>'+rd.desc+'<br>Рекомендуемый уровень: '+rd.rec+'. Как соберётся нужное число — бойцы сами идут в бой с боссом.</div>');
+      L.insertAdjacentHTML('beforeend','<div class="warbox">\u{1F4E2} Сбор: «'+rd.name+'»<b>Готовы: '+r.ready.length+' / '+r.need+'</b>'+rd.desc+'<br>Рекомендуемый уровень: '+rd.rec+' • дело займёт '+fmtDur(rd.dur)+'. Как соберётся нужное число — бойцы уходят на дело, потом сразу получают награду.</div>');
       const names=r.ready.map(id=>(m.members.find(x=>x.id===id)||{}).name||'?').join(', ');
       L.insertAdjacentHTML('beforeend','<div class="hint">Готовы: '+names+'</div><button class="sbtn" id="rdReady" style="width:100%;padding:12px;font-size:15px">'+(mine?'✖ Не готов':'✅ ГОТОВ')+'</button>');
-      $('rdReady').onclick=async()=>{await syncNow(true);if(await netAct('raid/ready'))if(NET.result)renderSoc()};
-      if(owner&&r.ready.length>=2)L.insertAdjacentHTML('beforeend','<button class="sbtn" id="rdGo" style="width:100%;margin-top:8px">⚔ Начать сейчас ('+r.ready.length+' бойцов)</button>');
+      $('rdReady').onclick=async()=>{await syncNow(true);await netAct('raid/ready')};
+      if((owner||m.me.dep)&&r.ready.length>=2)L.insertAdjacentHTML('beforeend','<button class="sbtn" id="rdGo" style="width:100%;margin-top:8px">⚔ Начать сейчас ('+r.ready.length+' бойцов)</button>');
       if($('rdGo'))$('rdGo').onclick=()=>netAct('raid/start');
     }else if(r.st==='cooldown'){
-      const ms=Math.max(0,r.until-Date.now());L.insertAdjacentHTML('beforeend','<div class="hint">\u{1F634} Клуб отдыхает после дела. Следующее через '+Math.floor(ms/3600000)+'ч '+Math.floor(ms/60000)%60+'м. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
+      L.insertAdjacentHTML('beforeend','<div class="hint">\u{1F634} Клуб отдыхает после дела. Новое можно объявить через <b class="cdt" data-u="'+(r.until-r.now+Date.now())+'">'+fmtDur(r.until-r.now)+'</b>. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
     }else{
-      L.insertAdjacentHTML('beforeend','<div class="hint">Объяви сбор — любой член клуба. Нужно '+r.need+' бойцов. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
-      m.raids.forEach(rd=>{const d=document.createElement('div');d.className='row';
-        d.innerHTML='<span class="pl">\u{1F608}</span><span class="nm">'+rd.name+'<small>рек. ур. '+rd.rec+' • \u{1FA99}'+rd.cc+' • опыт клуба '+rd.xp+(rd.open?'':' • нужен ур. клуба '+rd.min)+'</small></span>';
-        const b=document.createElement('button');b.textContent='Сбор';b.disabled=!rd.open;b.onclick=async()=>{await syncNow(true);netAct('raid/open',{type:rd.id})};d.appendChild(b);L.appendChild(d)});
+      L.insertAdjacentHTML('beforeend','<div class="hint">Объяви сбор — любой член клуба. Чем сложнее дело, тем дольше оно идёт и тем больше награда. Побед: '+r.stats.win+', поражений: '+r.stats.lose+'</div>');
     }
+    if(r.st==='idle'||r.st==='cooldown')m.raids.forEach(rd=>{const d=document.createElement('div');d.className='row';
+      d.innerHTML='<span class="pl">\u{1F608}</span><span class="nm">'+rd.name+'<small>⏱ '+fmtDur(rd.dur)+' • \u{1F465} '+rd.needN+' • рек. ур. '+rd.rec+' • \u{1FA99}'+rd.cc+' • опыт '+rd.xp+(rd.open?'':' • нужен ур. клуба '+rd.min)+'</small></span>';
+      const b=document.createElement('button');b.textContent='Сбор';b.disabled=!rd.open||r.st==='cooldown';b.onclick=async()=>{await syncNow(true);netAct('raid/open',{type:rd.id})};d.appendChild(b);L.appendChild(d)});
   }
 }
+function fmtDur(ms){ms=Math.max(0,Math.ceil(ms/1000));const h=Math.floor(ms/3600),m=Math.floor(ms/60)%60,s=ms%60;return h?h+'ч '+String(m).padStart(2,'0')+'м':m?m+'м '+String(s).padStart(2,'0')+'с':s+'с'}
+let cdBusy=0;
+setInterval(()=>{const els=document.querySelectorAll('.cdt');if(!els.length)return;let done=false;els.forEach(e=>{const l=+e.dataset.u-Date.now();e.textContent=fmtDur(l);if(l<=0)done=true});
+  if(done&&!cdBusy&&$('socOverlay').classList.contains('show')){cdBusy=1;api('board').then(b=>{NET=b;renderSoc()}).catch(()=>{}).finally(()=>setTimeout(()=>cdBusy=0,3000))}},1000);
 function stChips2(st){return Object.keys(st).map(k=>STN[k][0]+'+'+st[k]+STN[k][2]).join(' ')}
 function showRaidRes(res,L,old){
   const rd=NET.mine&&NET.mine.raids[res.raid]||{name:'Дело'};
